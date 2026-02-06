@@ -1,0 +1,198 @@
+.lineage-card {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--card-shadow);
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  animation: fadeInUp 0.5s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.lineage-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(134, 239, 172, 0.18);
+}
+
+.lineage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.lineage-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lineage-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: rgba(134, 239, 172, 0.15);
+  border-radius: 8px;
+}
+
+.lineage-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dropdown-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(134, 239, 172, 0.12);
+  border: 1px solid rgba(134, 239, 172, 0.25);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.dropdown-chip:hover {
+  background: rgba(134, 239, 172, 0.2);
+}
+
+.lineage-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+/* Chart area */
+.lineage-chart-area {
+  position: relative;
+  height: 150px;
+  margin-bottom: 8px;
+}
+
+.chart-grid {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.grid-line {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.chart-bars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  padding-bottom: 20px;
+}
+
+.bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  cursor: pointer;
+}
+
+.bar-stack {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 120px;
+}
+
+.bar {
+  width: 10px;
+  border-radius: 5px 5px 2px 2px;
+  transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: bottom;
+}
+
+.bar-mentorship {
+  background: linear-gradient(180deg, #4ade80, #22c55e);
+  opacity: 0.9;
+}
+
+.bar-referral {
+  background: linear-gradient(180deg, #86efac, #4ade80);
+  opacity: 0.7;
+}
+
+.bar-guidance {
+  background: linear-gradient(180deg, #bbf7d0, #86efac);
+  opacity: 0.55;
+}
+
+.bar-group.hovered .bar {
+  filter: brightness(1.15);
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
+}
+
+.bar-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Tooltip */
+.chart-tooltip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: rgba(30, 60, 40, 0.92);
+  backdrop-filter: blur(8px);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+  animation: scaleIn 0.15s ease;
+}
+
+.chart-tooltip strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chart-tooltip span {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.lineage-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.expand-hint {
+  font-size: 10px;
+  color: var(--mint-500);
+  font-weight: 500;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.lineage-card:hover .expand-hint {
+  opacity: 1;
+}

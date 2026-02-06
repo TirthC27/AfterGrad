@@ -1,0 +1,49 @@
+.stats-card {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: var(--card-shadow);
+  animation: fadeInUp 0.5s ease 0.1s both;
+}
+
+.stats-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(134, 239, 172, 0.14);
+}
+
+.stats-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(134, 239, 172, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stats-info {
+  flex: 1;
+}
+
+.stats-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stats-arrow {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.stats-card:hover .stats-arrow {
+  opacity: 0.9;
+}

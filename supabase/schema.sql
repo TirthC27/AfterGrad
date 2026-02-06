@@ -13,12 +13,13 @@ create table users (
   college text,
   graduation_year int,
   company text,
-  current_role text,
+  job_title text,
   skills jsonb,
   career_goal text,
   location text,
   created_at timestamp default now()
 );
+
 
 -- 2️⃣ Alumni Lineage (Simple & Visual)
 -- =============================================

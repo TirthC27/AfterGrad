@@ -1,8 +1,13 @@
 .app-layout {
   display: grid;
-  grid-template-columns: 200px 1fr 300px;
+  grid-template-columns: 220px 1fr;
   min-height: 100vh;
   gap: 0;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+.app-layout.sidebar-collapsed {
+  grid-template-columns: 68px 1fr;
 }
 
 .main-content {

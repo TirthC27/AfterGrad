@@ -1,0 +1,235 @@
+/* ─── Location Requests Page (Student) ─── */
+.location-requests-page {
+  animation: fadeInUp 0.4s ease;
+}
+
+.lr-header {
+  margin-bottom: 20px;
+}
+
+.lr-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.lr-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Stats row */
+.lr-stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.lr-stat {
+  flex: 1;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--card-shadow);
+}
+
+.lr-stat-number {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.lr-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Filters */
+.lr-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+/* Request list */
+.lr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lr-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--card-shadow);
+  cursor: pointer;
+  transition: all 0.2s;
+  animation: fadeInUp 0.4s ease both;
+}
+
+.lr-card:hover {
+  transform: translateX(3px);
+  border-color: var(--mint-300);
+}
+
+.lr-card.status-accepted {
+  border-left: 3px solid var(--mint-400);
+}
+
+.lr-card.status-pending {
+  border-left: 3px solid #fbbf24;
+}
+
+.lr-card.status-revoked {
+  border-left: 3px solid #f87171;
+  opacity: 0.75;
+}
+
+.lr-card.status-rejected {
+  border-left: 3px solid #d1d5db;
+  opacity: 0.65;
+}
+
+.lr-card-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.lr-alumni-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--mint-300), var(--mint-400));
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lr-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lr-event-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.lr-alumni-name {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.lr-request-date {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.lr-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.lr-status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.lr-status-badge.status-pending {
+  background: rgba(251, 191, 36, 0.12);
+  color: #b45309;
+}
+
+.lr-status-badge.status-accepted {
+  background: rgba(134, 239, 172, 0.12);
+  color: var(--mint-600);
+}
+
+.lr-status-badge.status-revoked {
+  background: rgba(248, 113, 113, 0.08);
+  color: #dc2626;
+}
+
+.lr-status-badge.status-rejected {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-muted);
+}
+
+.lr-granted-date,
+.lr-revoked-date {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Empty */
+.lr-empty {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow);
+}
+
+.lr-empty-icon {
+  font-size: 40px;
+  margin-bottom: 14px;
+}
+
+.lr-empty h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.lr-empty p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 18px;
+}
+
+.lr-browse-btn {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, var(--mint-400), var(--mint-500));
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lr-browse-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(74, 222, 128, 0.35);
+}

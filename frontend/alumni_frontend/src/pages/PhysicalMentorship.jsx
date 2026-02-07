@@ -1,638 +1,657 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { GoogleMap, OverlayViewF, OverlayView, CircleF } from '@react-google-maps/api'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { MapContainer, TileLayer, Marker, Circle, Popup, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import {
-  MapPin, Clock, Users, ChevronUp, ChevronDown, X, Navigation,
-  Plus, Minus, ToggleLeft, ToggleRight, Zap, Bell, Footprints,
-  Radio, User, Star, MessageCircle
+  MapPin, Clock, Users, X, Navigation, Plus, Minus,
+  ToggleLeft, ToggleRight, Zap, Radio, User, Star,
+  MessageCircle, ChevronDown, ChevronRight, Search,
+  Compass, Locate, Eye, EyeOff, Settings, Award,
+  BookOpen, Briefcase, Code, Cpu, Filter, ArrowUpRight
 } from 'lucide-react'
-import Button from '../components/Button'
-import Badge from '../components/Badge'
 
-/* ─── Google Maps custom style (light, minimal — matches the mint theme) ─── */
-const MAP_STYLES = [
-  { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
-  { elementType: 'labels.icon', stylers: [{ visibility: 'on' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#f5f5f5' }] },
-  { featureType: 'administrative.land_parcel', elementType: 'labels.text.fill', stylers: [{ color: '#bdbdbd' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#e8f5e9' }] },
-  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#4a7a5a' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#d4edda' }] },
-  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#4a7a5a' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'road.arterial', elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#e8f5e9' }] },
-  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
-  { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
-  { featureType: 'transit.line', elementType: 'geometry', stylers: [{ color: '#e5e5e5' }] },
-  { featureType: 'transit.station', elementType: 'geometry', stylers: [{ color: '#dcfce8' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c8e6c9' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#4a7a5a' }] },
+/* ═══════════════════════════════════════
+   Data
+   ═══════════════════════════════════════ */
+
+const SPECIALIZATIONS = [
+  'Software Engineering', 'Data Science', 'Product Management',
+  'UI/UX Design', 'Machine Learning', 'Cloud & DevOps',
+  'Cybersecurity', 'Blockchain', 'Embedded Systems', 'Finance & Analytics'
 ]
 
-const MAP_OPTIONS = {
-  styles: MAP_STYLES,
-  disableDefaultUI: true,
-  zoomControl: false,
-  mapTypeControl: false,
-  streetViewControl: false,
-  fullscreenControl: false,
-  clickableIcons: false,
-  gestureHandling: 'greedy',
+const TIME_WINDOWS = [
+  '9:00 AM – 11:00 AM', '11:00 AM – 1:00 PM', '1:00 PM – 3:00 PM',
+  '3:00 PM – 5:00 PM', '5:00 PM – 7:00 PM', '7:00 PM – 9:00 PM'
+]
+
+/* Bhagubai College campus area – Vile Parle, Mumbai */
+const CAMPUS_CENTER = [19.1075, 72.8480]
+
+const CAMPUS_LOCATIONS = [
+  { id: 'canteen', name: 'Cafeteria', lat: 19.1082, lng: 72.8468, icon: 'C' },
+  { id: 'library', name: 'Library Wing', lat: 19.1078, lng: 72.8488, icon: 'L' },
+  { id: 'admin', name: 'Admin Block', lat: 19.1072, lng: 72.8500, icon: 'A' },
+  { id: 'lhc', name: 'Lecture Hall', lat: 19.1066, lng: 72.8475, icon: 'H' },
+  { id: 'lab', name: 'Computer Lab', lat: 19.1060, lng: 72.8492, icon: 'T' },
+  { id: 'sports', name: 'Sports Ground', lat: 19.1055, lng: 72.8510, icon: 'S' },
+  { id: 'seminar', name: 'Seminar Hall', lat: 19.1085, lng: 72.8452, icon: 'R' },
+]
+
+const mockNearbyAlumni = [
+  {
+    id: 101, name: 'Kavya Nair', avatar: 'KN', role: 'ML Engineer @ DeepMind',
+    specialization: 'Machine Learning', rating: 4.9,
+    location: CAMPUS_LOCATIONS[1], distance: '120m',
+    tags: ['PyTorch', 'NLP', 'Research'],
+  },
+  {
+    id: 102, name: 'Rohan Desai', avatar: 'RD', role: 'Staff Eng @ Stripe',
+    specialization: 'Software Engineering', rating: 4.7,
+    location: CAMPUS_LOCATIONS[0], distance: '250m',
+    tags: ['System Design', 'Go', 'Distributed'],
+  },
+  {
+    id: 103, name: 'Ananya Rao', avatar: 'AR', role: 'Design Lead @ Figma',
+    specialization: 'UI/UX Design', rating: 4.8,
+    location: CAMPUS_LOCATIONS[2], distance: '400m',
+    tags: ['Design Systems', 'Prototyping'],
+  },
+]
+
+const mockStudentRequests = [
+  { id: 201, name: 'Aditya S.', avatar: 'AS', topic: 'Resume Review for SDE roles', time: '2 min ago', status: 'pending' },
+  { id: 202, name: 'Meera K.', avatar: 'MK', topic: 'Guidance on ML research papers', time: '5 min ago', status: 'pending' },
+]
+
+/* ═══════════════════════════════════════
+   Custom Leaflet Marker Icons
+   ═══════════════════════════════════════ */
+
+function createLocationIcon(icon, name, isSelected) {
+  return L.divIcon({
+    className: 'pm-leaflet-loc-icon',
+    html: `<div class="pm-loc-pin ${isSelected ? 'selected' : ''}">
+      <span class="pm-loc-pin-letter">${icon}</span>
+      <div class="pm-loc-pin-tail"></div>
+    </div>
+    <span class="pm-loc-pin-label ${isSelected ? 'selected' : ''}">${name}</span>`,
+    iconSize: [38, 56],
+    iconAnchor: [19, 38],
+    popupAnchor: [0, -40],
+  })
 }
 
-/* ─── Pulse Marker Overlay ─── */
-function PulseMarker({ position, color, onClick }) {
+function createAlumniIcon(avatar) {
+  return L.divIcon({
+    className: 'pm-leaflet-alumni-icon',
+    html: `<div class="pm-alumni-marker">
+      <div class="pm-alumni-pulse"></div>
+      <div class="pm-alumni-dot">${avatar}</div>
+    </div>`,
+    iconSize: [42, 42],
+    iconAnchor: [21, 21],
+  })
+}
+
+function createUserIcon() {
+  return L.divIcon({
+    className: 'pm-leaflet-user-icon',
+    html: `<div class="pm-user-marker">
+      <div class="pm-user-pulse"></div>
+      <div class="pm-user-dot"></div>
+    </div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+  })
+}
+
+/* Map controller to fly to selected location */
+function MapFlyTo({ center, zoom }) {
+  const map = useMap()
+  useEffect(() => {
+    if (center) map.flyTo(center, zoom || 17, { duration: 1.2 })
+  }, [center, zoom])
+  return null
+}
+
+/* ═══════════════════════════════════════
+   Interactive Campus Map (Leaflet)
+   ═══════════════════════════════════════ */
+
+function CampusMap({ locations, nearbyAlumni, selectedLocation, onLocationClick, onAlumniClick, isLive, proximityRange }) {
+  const flyTarget = selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : null
+
   return (
-    <OverlayViewF
-      position={position}
-      mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-      getPixelPositionOffset={() => ({ x: -18, y: -18 })}
-    >
-      <div
-        onClick={onClick}
-        style={{ width: 36, height: 36, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+    <div className="pm-map-container">
+      <MapContainer
+        center={CAMPUS_CENTER}
+        zoom={16}
+        className="pm-leaflet-map"
+        zoomControl={false}
+        attributionControl={false}
       >
-        <div style={{
-          position: 'absolute', inset: 0, borderRadius: '50%', background: color,
-          opacity: 0.18, animation: 'pulse-ring 2s ease-out infinite',
-        }} />
-        <div style={{
-          width: 18, height: 18, borderRadius: '50%', background: color,
-          border: '3px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-          position: 'relative', zIndex: 1,
-        }} />
-      </div>
-    </OverlayViewF>
-  )
-}
+        {/* Light clean tiles (CartoDB Voyager) */}
+        <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
 
-/* ─── Student "You" Marker Overlay ─── */
-function StudentMarker({ position }) {
-  return (
-    <OverlayViewF
-      position={position}
-      mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-      getPixelPositionOffset={() => ({ x: -14, y: -14 })}
-    >
-      <div style={{
-        width: 28, height: 28, borderRadius: '50%', background: '#3b82f6',
-        border: '3px solid white', boxShadow: '0 2px 10px rgba(59,130,246,0.4)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-          <circle cx="12" cy="7" r="4" />
-          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-        </svg>
-      </div>
-    </OverlayViewF>
-  )
-}
+        {/* Fly to selected location */}
+        {flyTarget && <MapFlyTo center={flyTarget} zoom={17} />}
 
-/* ─── Mock data ─── */
-const CAMPUS_CENTER = { lat: 28.5449, lng: 77.1926 } // IIT Delhi
-const LOCATIONS = [
-  { name: 'Main Canteen', pos: { lat: 28.5460, lng: 77.1905 } },
-  { name: 'Central Library', pos: { lat: 28.5440, lng: 77.1940 } },
-  { name: 'SAC Building', pos: { lat: 28.5455, lng: 77.1958 } },
-  { name: 'Lecture Hall Complex', pos: { lat: 28.5435, lng: 77.1915 } },
-  { name: 'Hostel Block A', pos: { lat: 28.5470, lng: 77.1935 } },
-]
-
-const mockAlumniPulses = [
-  {
-    id: 1, name: 'Arjun Mehta', role: 'SDE @ Google', avatar: 'AM',
-    location: LOCATIONS[0], duration: 30, capacity: 3, filled: 1,
-    groupMode: false, rating: 4.8, tags: ['DSA', 'System Design'],
-    status: 'available',
-  },
-  {
-    id: 2, name: 'Priya Sharma', role: 'PM @ Flipkart', avatar: 'PS',
-    location: LOCATIONS[1], duration: 45, capacity: 5, filled: 3,
-    groupMode: true, rating: 4.9, tags: ['Product', 'Case Studies'],
-    status: 'limited',
-  },
-  {
-    id: 3, name: 'Rahul Verma', role: 'Data Scientist @ Amazon', avatar: 'RV',
-    location: LOCATIONS[2], duration: 20, capacity: 2, filled: 0,
-    groupMode: false, rating: 4.6, tags: ['ML', 'Python'],
-    status: 'available',
-  },
-  {
-    id: 4, name: 'Sneha Gupta', role: 'Frontend Lead @ Razorpay', avatar: 'SG',
-    location: LOCATIONS[3], duration: 60, capacity: 4, filled: 3,
-    groupMode: true, rating: 4.7, tags: ['React', 'UI/UX'],
-    status: 'limited',
-  },
-]
-
-/* ─── Walking time estimate ─── */
-function getWalkingMinutes(from, to) {
-  const R = 6371e3
-  const toRad = d => d * Math.PI / 180
-  const dLat = toRad(to.lat - from.lat)
-  const dLon = toRad(to.lng - from.lng)
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(from.lat)) * Math.cos(toRad(to.lat)) * Math.sin(dLon / 2) ** 2
-  const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return Math.max(1, Math.round(dist / 80)) // ~80m per minute walking
-}
-
-/* ─── Notification Toast ─── */
-function NearbyNotification({ pulse, onDismiss }) {
-  return (
-    <motion.div
-      initial={{ y: -80, opacity: 0, scale: 0.9 }}
-      animate={{ y: 0, opacity: 1, scale: 1 }}
-      exit={{ y: -80, opacity: 0, scale: 0.9 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-[340px]"
-    >
-      <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.12)] border border-white/60 p-4 flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-[var(--mint-100)] flex items-center justify-center shrink-0">
-          <Radio size={18} className="text-[var(--mint-500)]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-[13px] font-bold text-[var(--text-primary)]">{pulse.name}</span>
-            <Badge variant="success" className="!text-[9px] !px-1.5 !py-0.5">LIVE</Badge>
-          </div>
-          <p className="text-[11px] text-[var(--text-muted)] leading-snug">
-            is available at <strong className="text-[var(--text-secondary)]">{pulse.location.name}</strong> for {pulse.duration} min
-          </p>
-          <div className="flex items-center gap-2 mt-2">
-            <Button variant="primary" size="sm" className="!text-[10px] !px-2.5 !py-1" onClick={onDismiss}>
-              <Navigation size={10} /> View on Map
-            </Button>
-            <button onClick={onDismiss} className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] cursor-pointer bg-transparent border-none font-[inherit]">
-              Dismiss
-            </button>
-          </div>
-        </div>
-        <button onClick={onDismiss} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer bg-transparent border-none mt-0.5">
-          <X size={14} />
-        </button>
-      </div>
-    </motion.div>
-  )
-}
-
-/* ─── Alumnus Pulse Panel (Bottom Sheet) ─── */
-function PulsePanel({ onGoLive, isLive, onStopLive }) {
-  const [expanded, setExpanded] = useState(false)
-  const [location, setLocation] = useState(LOCATIONS[0].name)
-  const [duration, setDuration] = useState(30)
-  const [capacity, setCapacity] = useState(3)
-  const [groupMode, setGroupMode] = useState(false)
-
-  return (
-    <motion.div
-      className="absolute bottom-0 left-0 right-0 z-[900] pointer-events-none"
-      animate={{ y: 0 }}
-    >
-      <motion.div
-        className="bg-white/92 backdrop-blur-2xl rounded-t-3xl shadow-[0_-4px_30px_rgba(0,0,0,0.08)] border-t border-white/70 pointer-events-auto"
-        animate={{ height: expanded ? 380 : (isLive ? 100 : 72) }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      >
-        {/* Handle bar */}
-        <div
-          className="flex justify-center pt-3 pb-2 cursor-pointer"
-          onClick={() => setExpanded(e => !e)}
-        >
-          <div className="w-10 h-1 rounded-full bg-[var(--text-muted)]/30" />
-        </div>
-
-        {/* Collapsed: quick status */}
-        {!expanded && !isLive && (
-          <div className="px-5 pb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap size={16} className="text-[var(--mint-500)]" />
-              <span className="text-sm font-semibold text-[var(--text-primary)]">Go Live on Campus</span>
-            </div>
-            <button
-              onClick={() => setExpanded(true)}
-              className="flex items-center gap-1 text-xs font-medium text-[var(--mint-500)] bg-transparent border-none cursor-pointer font-[inherit]"
-            >
-              Set up <ChevronUp size={14} />
-            </button>
-          </div>
+        {/* Proximity range circle */}
+        {isLive && selectedLocation && (
+          <Circle
+            center={[selectedLocation.lat, selectedLocation.lng]}
+            radius={proximityRange}
+            pathOptions={{
+              color: '#22c55e',
+              fillColor: '#22c55e',
+              fillOpacity: 0.07,
+              weight: 1.5,
+              dashArray: '6 4',
+            }}
+          />
         )}
 
-        {!expanded && isLive && (
-          <div className="px-5 pb-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-3 h-3 rounded-full bg-[var(--mint-400)] animate-[pulse_1.5s_ease-in-out_infinite]" />
-              </div>
-              <div>
-                <span className="text-sm font-semibold text-[var(--text-primary)]">You're Live</span>
-                <span className="text-[11px] text-[var(--text-muted)] ml-2">{location} · {duration} min · {capacity} slots</span>
-              </div>
-            </div>
-            <Button variant="danger" size="sm" className="!text-[10px]" onClick={onStopLive}>Stop</Button>
-          </div>
-        )}
-
-        {/* Expanded: full controls */}
-        {expanded && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="px-5 pb-6 flex flex-col gap-5"
+        {/* Campus location markers */}
+        {locations.map(loc => (
+          <Marker
+            key={loc.id}
+            position={[loc.lat, loc.lng]}
+            icon={createLocationIcon(loc.icon, loc.name, selectedLocation?.id === loc.id)}
+            eventHandlers={{ click: () => onLocationClick(loc) }}
           >
-            <div className="flex items-center justify-between">
-              <span className="text-[15px] font-bold text-[var(--text-primary)]">Set Your Pulse</span>
-              <button
-                onClick={() => setExpanded(false)}
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-transparent border-none cursor-pointer"
-              >
-                <ChevronDown size={18} />
-              </button>
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5 block">Location</label>
-              <div className="flex flex-wrap gap-2">
-                {LOCATIONS.map(loc => (
-                  <button
-                    key={loc.name}
-                    onClick={() => setLocation(loc.name)}
-                    className={`
-                      text-xs px-3 py-1.5 rounded-xl border cursor-pointer font-[inherit] transition-all duration-200
-                      ${location === loc.name
-                        ? 'bg-[var(--mint-400)] text-white border-[var(--mint-400)] shadow-[0_3px_12px_rgba(74,222,128,0.3)]'
-                        : 'bg-white/50 text-[var(--text-secondary)] border-[var(--glass-border)] hover:border-[var(--mint-300)]'
-                      }
-                    `}
-                  >
-                    <MapPin size={11} className="inline mr-1 -mt-0.5" />{loc.name}
-                  </button>
-                ))}
+            <Popup className="pm-map-popup">
+              <div className="pm-popup-content">
+                <span className="pm-popup-icon">{loc.icon}</span>
+                <strong>{loc.name}</strong>
               </div>
-            </div>
+            </Popup>
+          </Marker>
+        ))}
 
-            {/* Duration slider */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Duration</label>
-                <span className="text-sm font-bold text-[var(--mint-500)]">{duration} min</span>
-              </div>
-              <input
-                type="range"
-                min={15}
-                max={60}
-                step={5}
-                value={duration}
-                onChange={(e) => setDuration(+e.target.value)}
-                className="w-full accent-[var(--mint-400)] h-1.5 cursor-pointer"
-                style={{ accentColor: 'var(--mint-400)' }}
-              />
-              <div className="flex justify-between text-[10px] text-[var(--text-muted)] mt-1">
-                <span>15 min</span><span>30</span><span>45</span><span>60 min</span>
-              </div>
-            </div>
-
-            {/* Capacity + Group toggle */}
-            <div className="flex items-center gap-6">
-              <div className="flex-1">
-                <label className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5 block">Capacity</label>
-                <div className="flex items-center gap-2.5">
-                  <button
-                    onClick={() => setCapacity(c => Math.max(1, c - 1))}
-                    className="w-8 h-8 rounded-xl bg-white/60 border border-[var(--glass-border)] flex items-center justify-center cursor-pointer hover:bg-[var(--mint-50)] transition-colors"
-                  >
-                    <Minus size={14} className="text-[var(--text-secondary)]" />
-                  </button>
-                  <span className="text-lg font-bold text-[var(--text-primary)] w-6 text-center">{capacity}</span>
-                  <button
-                    onClick={() => setCapacity(c => Math.min(5, c + 1))}
-                    className="w-8 h-8 rounded-xl bg-white/60 border border-[var(--glass-border)] flex items-center justify-center cursor-pointer hover:bg-[var(--mint-50)] transition-colors"
-                  >
-                    <Plus size={14} className="text-[var(--text-secondary)]" />
-                  </button>
-                  <span className="text-[10px] text-[var(--text-muted)] ml-1">students</span>
+        {/* Nearby alumni markers */}
+        {nearbyAlumni.map(a => (
+          <Marker
+            key={a.id}
+            position={[a.location.lat + 0.0003, a.location.lng + 0.0004]}
+            icon={createAlumniIcon(a.avatar)}
+            eventHandlers={{ click: () => onAlumniClick(a) }}
+          >
+            <Popup className="pm-map-popup">
+              <div className="pm-popup-content pm-popup-alumni">
+                <div className="pm-popup-avatar">{a.avatar}</div>
+                <div>
+                  <strong>{a.name}</strong>
+                  <span className="pm-popup-role">{a.role}</span>
+                  <span className="pm-popup-distance"><Navigation size={10} /> {a.distance}</span>
                 </div>
               </div>
+            </Popup>
+          </Marker>
+        ))}
 
-              <div>
-                <label className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5 block">Group Session</label>
-                <button
-                  onClick={() => setGroupMode(g => !g)}
-                  className="bg-transparent border-none cursor-pointer p-0"
-                >
-                  {groupMode
-                    ? <ToggleRight size={36} className="text-[var(--mint-400)]" />
-                    : <ToggleLeft size={36} className="text-[var(--text-muted)]/40" />
-                  }
-                </button>
-              </div>
-            </div>
-
-            {/* Go Live button */}
-            <Button
-              variant={isLive ? 'danger' : 'primary'}
-              size="lg"
-              className="w-full !rounded-2xl !py-3 !text-sm !font-bold"
-              onClick={() => {
-                if (isLive) { onStopLive(); }
-                else { onGoLive({ location, duration, capacity, groupMode }); }
-                setExpanded(false)
-              }}
-            >
-              {isLive ? (
-                <><X size={16} /> Stop Pulse</>
-              ) : (
-                <><Zap size={16} /> Go Live Now</>
-              )}
-            </Button>
-          </motion.div>
-        )}
-      </motion.div>
-    </motion.div>
-  )
-}
-
-/* ─── Student Request View ─── */
-function StudentRequestSheet({ pulse, userPos, onRequest, onClose }) {
-  const walkMins = getWalkingMinutes(userPos, pulse.location.pos)
-  const slotsLeft = pulse.capacity - pulse.filled
-
-  return (
-    <motion.div
-      initial={{ y: 300, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 300, opacity: 0 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-      className="absolute bottom-0 left-0 right-0 z-[950] pointer-events-auto"
-    >
-      <div className="bg-white/95 backdrop-blur-2xl rounded-t-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.1)] border-t border-white/70 p-5">
-        {/* Handle */}
-        <div className="flex justify-center mb-3">
-          <div className="w-10 h-1 rounded-full bg-[var(--text-muted)]/30" />
-        </div>
-
-        {/* Alumni info */}
-        <div className="flex items-start gap-3 mb-4">
-          <div className="w-12 h-12 rounded-2xl bg-[var(--mint-100)] flex items-center justify-center text-[var(--mint-600)] font-bold text-sm shrink-0">
-            {pulse.avatar}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[15px] font-bold text-[var(--text-primary)]">{pulse.name}</span>
-              <div className="flex items-center gap-0.5">
-                <Star size={11} className="text-amber-400 fill-amber-400" />
-                <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{pulse.rating}</span>
-              </div>
-            </div>
-            <span className="text-[12px] text-[var(--text-muted)] block">{pulse.role}</span>
-            <div className="flex flex-wrap gap-1.5 mt-1.5">
-              {pulse.tags.map(tag => (
-                <span key={tag} className="text-[10px] px-2 py-0.5 rounded-lg bg-[rgba(134,239,172,0.1)] text-[var(--text-secondary)] font-medium">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-transparent border-none cursor-pointer">
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Stats row */}
-        <div className="flex items-center gap-4 mb-4 p-3 rounded-2xl bg-[rgba(134,239,172,0.06)] border border-[rgba(134,239,172,0.12)]">
-          <div className="flex items-center gap-1.5 flex-1">
-            <MapPin size={14} className="text-[var(--mint-500)]" />
-            <div>
-              <span className="text-[12px] font-semibold text-[var(--text-primary)] block">{pulse.location.name}</span>
-              <span className="text-[10px] text-[var(--text-muted)]">{pulse.duration} min session</span>
-            </div>
-          </div>
-          <div className="h-8 w-px bg-[var(--glass-border)]" />
-          <div className="flex items-center gap-1.5">
-            <Footprints size={14} className="text-[var(--mint-500)]" />
-            <div>
-              <span className="text-[12px] font-bold text-[var(--text-primary)] block">~{walkMins} min</span>
-              <span className="text-[10px] text-[var(--text-muted)]">walk</span>
-            </div>
-          </div>
-          <div className="h-8 w-px bg-[var(--glass-border)]" />
-          <div className="flex items-center gap-1.5">
-            <Users size={14} className={slotsLeft <= 1 ? 'text-amber-500' : 'text-[var(--mint-500)]'} />
-            <div>
-              <span className={`text-[12px] font-bold block ${slotsLeft <= 1 ? 'text-amber-600' : 'text-[var(--text-primary)]'}`}>
-                {slotsLeft} of {pulse.capacity}
-              </span>
-              <span className="text-[10px] text-[var(--text-muted)]">slots left</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Group badge */}
-        {pulse.groupMode && (
-          <div className="flex items-center gap-2 mb-4 text-[11px] text-[var(--text-secondary)] bg-[var(--mint-50)] rounded-xl px-3 py-2">
-            <Users size={13} className="text-[var(--mint-500)]" />
-            <span><strong>Group Session</strong> — Join {pulse.filled} other{pulse.filled !== 1 ? 's' : ''} already in</span>
-          </div>
-        )}
-
-        {/* Action buttons */}
-        <div className="flex gap-3">
-          <Button
-            variant="primary"
-            size="lg"
-            className="flex-1 !rounded-2xl !py-3 !text-sm !font-bold"
-            onClick={() => onRequest(pulse)}
-            disabled={slotsLeft === 0}
+        {/* User location marker (when live) */}
+        {isLive && selectedLocation && (
+          <Marker
+            position={[selectedLocation.lat - 0.0002, selectedLocation.lng + 0.0002]}
+            icon={createUserIcon()}
           >
-            <Navigation size={16} />
-            {slotsLeft === 0 ? 'Session Full' : 'Request Interaction'}
-          </Button>
-          <button
-            onClick={onClose}
-            className="w-12 h-12 rounded-2xl bg-white/60 border border-[var(--glass-border)] flex items-center justify-center cursor-pointer hover:bg-[var(--mint-50)] transition-colors"
-          >
-            <MessageCircle size={18} className="text-[var(--text-secondary)]" />
-          </button>
-        </div>
+            <Popup className="pm-map-popup">
+              <div className="pm-popup-content">
+                <strong>You are here</strong>
+              </div>
+            </Popup>
+          </Marker>
+        )}
+      </MapContainer>
+
+      {/* Floating legend overlay */}
+      <div className="pm-map-legend">
+        <span className="pm-legend-title">Legend</span>
+        <div className="pm-legend-item"><div className="pm-legend-dot" style={{ background: '#4ade80' }} />Selected</div>
+        <div className="pm-legend-item"><div className="pm-legend-dot" style={{ background: '#8b5cf6' }} />Alumni Nearby</div>
+        {isLive && <div className="pm-legend-item"><div className="pm-legend-dot" style={{ background: '#22c55e' }} />You</div>}
       </div>
-    </motion.div>
+
+      {/* Watermark */}
+      <div className="pm-map-watermark">
+        <Navigation size={12} />
+        <span>Campus Map</span>
+      </div>
+    </div>
   )
 }
 
-/* ─── Main Physical Mentorship Component ─── */
-export default function PhysicalMentorship({ addToast, isLoaded, loadError }) {
-  const [selectedPulse, setSelectedPulse] = useState(null)
+/* ═══════════════════════════════════════
+   Main Component
+   ═══════════════════════════════════════ */
+export default function PhysicalMentorship({ addToast }) {
+  /* Alumni profile state */
+  const [specialization, setSpecialization] = useState('')
+  const [showSpecDropdown, setShowSpecDropdown] = useState(false)
+  const [specSearch, setSpecSearch] = useState('')
+
+  /* Location & availability */
+  const [locationEnabled, setLocationEnabled] = useState(false)
+  const [selectedLocation, setSelectedLocation] = useState(null)
+  const [timeWindow, setTimeWindow] = useState('')
+  const [studentSlots, setStudentSlots] = useState(3)
+  const [groupEnabled, setGroupEnabled] = useState(false)
   const [isLive, setIsLive] = useState(false)
-  const [liveConfig, setLiveConfig] = useState(null)
-  const [notification, setNotification] = useState(null)
-  const mapRef = useRef(null)
-  const userPos = { lat: 28.5452, lng: 77.1930 } // simulated student position
+  const [proximityRange, setProximityRange] = useState(500) // meters
 
-  // Simulate a notification after 4 seconds
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setNotification(mockAlumniPulses[2])
-    }, 4000)
-    return () => clearTimeout(t)
-  }, [])
+  /* UI state */
+  const [activePanel, setActivePanel] = useState('setup') // setup | requests | nearby | group
+  const [selectedAlumni, setSelectedAlumni] = useState(null)
+  const [requests, setRequests] = useState(mockStudentRequests)
+  const [toast, setToast] = useState(null)
 
-  const panTo = useCallback((pos) => {
-    if (mapRef.current) {
-      mapRef.current.panTo(pos)
-      mapRef.current.setZoom(17)
-    }
-  }, [])
+  const filteredSpecs = SPECIALIZATIONS.filter(s =>
+    s.toLowerCase().includes(specSearch.toLowerCase())
+  )
 
-  const handleGoLive = (config) => {
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 3000)
+    addToast?.(msg)
+  }
+
+  const handleGoLive = () => {
+    if (!specialization) { showToast('Please select your specialization first'); return }
+    if (!selectedLocation) { showToast('Please select a campus location'); return }
+    if (!timeWindow) { showToast('Please select your available time window'); return }
+    setLocationEnabled(true)
     setIsLive(true)
-    setLiveConfig(config)
-    addToast?.(`You're live at ${config.location}!`)
+    showToast(`You're live at ${selectedLocation.name}!`)
+    setActivePanel('requests')
   }
 
   const handleStopLive = () => {
     setIsLive(false)
-    setLiveConfig(null)
-    addToast?.('Pulse stopped.', 'warning')
+    showToast('Pulse stopped — you\'re no longer visible to students.')
   }
 
-  const handleRequest = (pulse) => {
-    setSelectedPulse(null)
-    addToast?.(`Request sent to ${pulse.name}!`)
+  const handleAcceptRequest = (id) => {
+    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'accepted' } : r))
+    showToast('Request accepted! Student has been notified.')
   }
 
-  const handleNotificationAction = () => {
-    const pulse = notification
-    setNotification(null)
-    panTo(pulse.location.pos)
-    setTimeout(() => setSelectedPulse(pulse), 600)
-  }
-
-  if (loadError) {
-    console.error('Google Maps load error:', loadError)
-    return (
-      <div className="flex items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-strong)] p-10" style={{ height: 'calc(100vh - 160px)' }}>
-        <div className="text-center max-w-sm">
-          <MapPin size={40} className="mx-auto mb-3 text-red-400" />
-          <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">Failed to load Google Maps</p>
-          <p className="text-xs text-[var(--text-muted)] mb-3">Check your API key in <code className="bg-[var(--mint-50)] px-1 rounded">.env</code></p>
-          <p className="text-[10px] text-red-400/80 bg-red-50 rounded-lg p-2 break-all">{loadError.message || String(loadError)}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-strong)]" style={{ height: 'calc(100vh - 160px)' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-5 h-5 border-2 border-[var(--mint-400)] border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-[var(--text-muted)]">Loading Google Maps…</span>
-        </div>
-      </div>
-    )
+  const handleDeclineRequest = (id) => {
+    setRequests(prev => prev.filter(r => r.id !== id))
+    showToast('Request declined.')
   }
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden border border-[var(--glass-border)] shadow-[var(--card-shadow)]" style={{ height: 'calc(100vh - 160px)' }}>
-      {/* Google Map */}
-      <GoogleMap
-        mapContainerStyle={{ height: '100%', width: '100%' }}
-        center={CAMPUS_CENTER}
-        zoom={16}
-        options={MAP_OPTIONS}
-        onLoad={(map) => { mapRef.current = map }}
-      >
-        {/* User location circle */}
-        <CircleF
-          center={userPos}
-          radius={50}
-          options={{
-            strokeColor: '#3b82f6',
-            strokeOpacity: 1,
-            strokeWeight: 1,
-            fillColor: '#3b82f6',
-            fillOpacity: 0.08,
-          }}
-        />
-
-        {/* User marker */}
-        <StudentMarker position={userPos} />
-
-        {/* Alumni pulses */}
-        {mockAlumniPulses.map(pulse => (
-          <PulseMarker
-            key={pulse.id}
-            position={pulse.location.pos}
-            color={pulse.status === 'available' ? '#4ade80' : '#f59e0b'}
-            onClick={() => {
-              setSelectedPulse(pulse)
-              panTo(pulse.location.pos)
-            }}
+    <div className="pm-page">
+      <div className="pm-layout">
+        {/* ══════ LEFT: Map ══════ */}
+        <div className="pm-map-col">
+          <CampusMap
+            locations={CAMPUS_LOCATIONS}
+            nearbyAlumni={mockNearbyAlumni}
+            selectedLocation={selectedLocation}
+            onLocationClick={(loc) => setSelectedLocation(loc)}
+            onAlumniClick={(a) => { setSelectedAlumni(a); setActivePanel('nearby') }}
+            isLive={isLive}
+            proximityRange={proximityRange}
           />
-        ))}
-      </GoogleMap>
 
-      {/* Legend */}
-      <div className="absolute top-4 right-4 z-[800] bg-white/85 backdrop-blur-xl rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-white/60 p-3 flex flex-col gap-2">
-        <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Legend</span>
-        <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
-          <div className="w-3 h-3 rounded-full bg-[#4ade80]" />
-          <span>Available</span>
+          {/* Live status bar */}
+          {isLive && (
+            <div className="pm-live-bar">
+              <div className="pm-live-dot" />
+              <span className="pm-live-text">LIVE</span>
+              <span className="pm-live-detail">{selectedLocation?.name} · {timeWindow} · {studentSlots} slots</span>
+              <button className="pm-live-stop" onClick={handleStopLive}>Stop</button>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
-          <div className="w-3 h-3 rounded-full bg-[#f59e0b]" />
-          <span>Limited Slots</span>
-        </div>
-        <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
-          <div className="w-3 h-3 rounded-full bg-[#3b82f6]" />
-          <span>You</span>
+
+        {/* ══════ RIGHT: Panels ══════ */}
+        <div className="pm-panel-col">
+          {/* Tab Navigation */}
+          <div className="pm-panel-tabs">
+            {[
+              { key: 'setup', label: 'My Setup', icon: Settings },
+              { key: 'requests', label: 'Requests', icon: Users, count: requests.filter(r => r.status === 'pending').length },
+              { key: 'nearby', label: 'Alumni Nearby', icon: Eye },
+              { key: 'group', label: 'Group Hub', icon: MessageCircle },
+            ].map(tab => {
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.key}
+                  className={`pm-panel-tab ${activePanel === tab.key ? 'active' : ''}`}
+                  onClick={() => setActivePanel(tab.key)}
+                >
+                  <Icon size={14} />
+                  <span>{tab.label}</span>
+                  {tab.count > 0 && <span className="pm-tab-badge">{tab.count}</span>}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* ─── SETUP Panel ─── */}
+          {activePanel === 'setup' && (
+            <div className="pm-panel-body pm-setup">
+              <h3 className="pm-panel-title"><Settings size={16} /> Alumni Setup</h3>
+              <p className="pm-panel-subtitle">Configure your physical mentorship availability</p>
+
+              {/* Specialization */}
+              <div className="pm-field">
+                <label className="pm-label"><BookOpen size={13} /> Specialization</label>
+                <div className="pm-dropdown-wrap">
+                  <button
+                    className="pm-dropdown-trigger"
+                    onClick={() => setShowSpecDropdown(!showSpecDropdown)}
+                  >
+                    <span className={specialization ? 'pm-selected-val' : 'pm-placeholder'}>
+                      {specialization || 'Select your area of expertise'}
+                    </span>
+                    <ChevronDown size={14} style={{ transform: showSpecDropdown ? 'rotate(180deg)' : '', transition: '0.2s' }} />
+                  </button>
+                  {showSpecDropdown && (
+                    <div className="pm-dropdown-menu">
+                      <div className="pm-dropdown-search">
+                        <Search size={13} />
+                        <input
+                          placeholder="Search..."
+                          value={specSearch}
+                          onChange={e => setSpecSearch(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                      {filteredSpecs.map(s => (
+                        <button
+                          key={s}
+                          className={`pm-dropdown-option ${specialization === s ? 'active' : ''}`}
+                          onClick={() => { setSpecialization(s); setShowSpecDropdown(false); setSpecSearch('') }}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Location Toggle */}
+              <div className="pm-field">
+                <label className="pm-label"><MapPin size={13} /> Location Visibility</label>
+                <div className="pm-toggle-row">
+                  <span className="pm-toggle-text">{locationEnabled ? 'Your location is visible to students' : 'Location is hidden'}</span>
+                  <button className="pm-toggle-btn" onClick={() => setLocationEnabled(!locationEnabled)}>
+                    {locationEnabled
+                      ? <ToggleRight size={32} className="pm-toggle-on" />
+                      : <ToggleLeft size={32} className="pm-toggle-off" />
+                    }
+                  </button>
+                </div>
+              </div>
+
+              {/* Campus Location Picker */}
+              <div className="pm-field">
+                <label className="pm-label"><Compass size={13} /> Campus Location</label>
+                <div className="pm-location-grid">
+                  {CAMPUS_LOCATIONS.map(loc => (
+                    <button
+                      key={loc.id}
+                      className={`pm-location-chip ${selectedLocation?.id === loc.id ? 'active' : ''}`}
+                      onClick={() => setSelectedLocation(loc)}
+                    >
+                      <span className="pm-loc-icon">{loc.icon}</span>
+                      <span>{loc.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Time Window */}
+              <div className="pm-field">
+                <label className="pm-label"><Clock size={13} /> Available Time Window</label>
+                <div className="pm-time-grid">
+                  {TIME_WINDOWS.map(tw => (
+                    <button
+                      key={tw}
+                      className={`pm-time-chip ${timeWindow === tw ? 'active' : ''}`}
+                      onClick={() => setTimeWindow(tw)}
+                    >
+                      {tw}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Student Slots */}
+              <div className="pm-field">
+                <label className="pm-label"><Users size={13} /> Student Slots Available</label>
+                <div className="pm-slots-row">
+                  <button className="pm-slot-btn" onClick={() => setStudentSlots(s => Math.max(1, s - 1))}>
+                    <Minus size={14} />
+                  </button>
+                  <span className="pm-slot-num">{studentSlots}</span>
+                  <button className="pm-slot-btn" onClick={() => setStudentSlots(s => Math.min(10, s + 1))}>
+                    <Plus size={14} />
+                  </button>
+                  <span className="pm-slot-label">students max</span>
+                </div>
+              </div>
+
+              {/* Group Toggle */}
+              <div className="pm-field">
+                <div className="pm-toggle-row">
+                  <div>
+                    <span className="pm-toggle-text" style={{ fontWeight: 700 }}>Allow Group Sessions</span>
+                    <span className="pm-toggle-hint">Multiple students can join simultaneously</span>
+                  </div>
+                  <button className="pm-toggle-btn" onClick={() => setGroupEnabled(!groupEnabled)}>
+                    {groupEnabled
+                      ? <ToggleRight size={32} className="pm-toggle-on" />
+                      : <ToggleLeft size={32} className="pm-toggle-off" />
+                    }
+                  </button>
+                </div>
+              </div>
+
+              {/* Go Live / Stop */}
+              <button
+                className={`pm-go-live-btn ${isLive ? 'stop' : ''}`}
+                onClick={isLive ? handleStopLive : handleGoLive}
+              >
+                {isLive ? <><X size={16} /> Stop Pulse</> : <><Zap size={16} /> Go Live Now</>}
+              </button>
+            </div>
+          )}
+
+          {/* ─── REQUESTS Panel ─── */}
+          {activePanel === 'requests' && (
+            <div className="pm-panel-body">
+              <h3 className="pm-panel-title"><Users size={16} /> Student Requests</h3>
+              <p className="pm-panel-subtitle">Students requesting a session with you</p>
+
+              {requests.length === 0 ? (
+                <div className="pm-empty">
+                  <Users size={28} />
+                  <span>No requests yet</span>
+                  <span className="pm-empty-sub">Go live to start receiving requests!</span>
+                </div>
+              ) : (
+                <div className="pm-request-list">
+                  {requests.map(req => (
+                    <div key={req.id} className={`pm-request-card ${req.status}`}>
+                      <div className="pm-req-avatar">{req.avatar}</div>
+                      <div className="pm-req-info">
+                        <span className="pm-req-name">{req.name}</span>
+                        <span className="pm-req-topic">{req.topic}</span>
+                        <span className="pm-req-time">{req.time}</span>
+                      </div>
+                      {req.status === 'pending' ? (
+                        <div className="pm-req-actions">
+                          <button className="pm-req-accept" onClick={() => handleAcceptRequest(req.id)}>Accept</button>
+                          <button className="pm-req-decline" onClick={() => handleDeclineRequest(req.id)}>✕</button>
+                        </div>
+                      ) : (
+                        <span className="pm-req-status-badge">✓ Accepted</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── NEARBY ALUMNI Panel ─── */}
+          {activePanel === 'nearby' && (
+            <div className="pm-panel-body">
+              <h3 className="pm-panel-title"><Eye size={16} /> Alumni Nearby</h3>
+              <p className="pm-panel-subtitle">Other alumni within {proximityRange}m — view only</p>
+
+              {/* Proximity slider */}
+              <div className="pm-prox-slider">
+                <label className="pm-label"><Locate size={13} /> Proximity Range</label>
+                <div className="pm-prox-row">
+                  <input
+                    type="range" min={100} max={1000} step={50}
+                    value={proximityRange}
+                    onChange={e => setProximityRange(+e.target.value)}
+                    className="pm-range-input"
+                  />
+                  <span className="pm-prox-val">{proximityRange}m</span>
+                </div>
+              </div>
+
+              <div className="pm-nearby-list">
+                {mockNearbyAlumni.map(alumni => (
+                  <div
+                    key={alumni.id}
+                    className={`pm-nearby-card ${selectedAlumni?.id === alumni.id ? 'selected' : ''}`}
+                    onClick={() => setSelectedAlumni(alumni)}
+                  >
+                    <div className="pm-nearby-avatar" style={{ background: '#8b5cf620', color: '#7c3aed' }}>
+                      {alumni.avatar}
+                    </div>
+                    <div className="pm-nearby-info">
+                      <div className="pm-nearby-name-row">
+                        <span className="pm-nearby-name">{alumni.name}</span>
+                        <div className="pm-nearby-rating"><Star size={11} />{alumni.rating}</div>
+                      </div>
+                      <span className="pm-nearby-role">{alumni.role}</span>
+                      <span className="pm-nearby-spec">{alumni.specialization}</span>
+                      <div className="pm-nearby-tags">
+                        {alumni.tags.map(t => <span key={t} className="pm-nearby-tag">{t}</span>)}
+                      </div>
+                    </div>
+                    <div className="pm-nearby-distance">
+                      <Navigation size={12} />
+                      <span>{alumni.distance}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pm-nearby-notice">
+                <EyeOff size={14} />
+                <span>You can view nearby alumni but cannot send them session requests. Only students can request sessions.</span>
+              </div>
+            </div>
+          )}
+
+          {/* ─── GROUP HUB Panel ─── */}
+          {activePanel === 'group' && (
+            <div className="pm-panel-body">
+              <h3 className="pm-panel-title"><MessageCircle size={16} /> Group Hub</h3>
+              <p className="pm-panel-subtitle">Collaborative sessions & community</p>
+
+              {/* Active Group Sessions */}
+              <div className="pm-group-section">
+                <h4 className="pm-group-heading"><Radio size={13} /> Active Group Sessions</h4>
+                <div className="pm-group-cards">
+                  <div className="pm-group-card">
+                    <div className="pm-group-card-header">
+                      <span className="pm-group-topic">System Design Workshop</span>
+                      <span className="pm-group-live-badge"><div className="pm-mini-dot" /> LIVE</span>
+                    </div>
+                    <span className="pm-group-host">Hosted by Rohan Desai · SAC Building</span>
+                    <div className="pm-group-meta">
+                      <span><Users size={12} /> 4/6 joined</span>
+                      <span><Clock size={12} /> 25 min left</span>
+                    </div>
+                    <button className="pm-group-join" onClick={() => showToast('Joined System Design Workshop!')}>
+                      Join Session
+                    </button>
+                  </div>
+                  <div className="pm-group-card">
+                    <div className="pm-group-card-header">
+                      <span className="pm-group-topic">ML Paper Reading Club</span>
+                      <span className="pm-group-live-badge"><div className="pm-mini-dot" /> LIVE</span>
+                    </div>
+                    <span className="pm-group-host">Hosted by Kavya Nair · Central Library</span>
+                    <div className="pm-group-meta">
+                      <span><Users size={12} /> 2/5 joined</span>
+                      <span><Clock size={12} /> 40 min left</span>
+                    </div>
+                    <button className="pm-group-join" onClick={() => showToast('Joined ML Paper Reading Club!')}>
+                      Join Session
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Create Group Session */}
+              <div className="pm-group-section">
+                <h4 className="pm-group-heading"><Plus size={13} /> Start a Group Session</h4>
+                <div className="pm-group-create">
+                  <input className="pm-group-input" placeholder="Session topic (e.g. Mock Interview Circle)" />
+                  <div className="pm-group-create-row">
+                    <select className="pm-group-select">
+                      <option value="">Select location</option>
+                      {CAMPUS_LOCATIONS.map(l => <option key={l.id} value={l.id}>{l.icon} {l.name}</option>)}
+                    </select>
+                    <select className="pm-group-select">
+                      <option value="">Max participants</option>
+                      {[3, 4, 5, 6, 8, 10].map(n => <option key={n} value={n}>{n} students</option>)}
+                    </select>
+                  </div>
+                  <button className="pm-group-create-btn" onClick={() => showToast('Group session created!')}>
+                    <Zap size={14} /> Create & Go Live
+                  </button>
+                </div>
+              </div>
+
+              {/* Upcoming Scheduled */}
+              <div className="pm-group-section">
+                <h4 className="pm-group-heading"><Clock size={13} /> Scheduled Sessions</h4>
+                <div className="pm-group-scheduled">
+                  <div className="pm-sched-item">
+                    <div className="pm-sched-time">Today, 3 PM</div>
+                    <div className="pm-sched-info">
+                      <span className="pm-sched-topic">Resume Roast Round</span>
+                      <span className="pm-sched-detail">Tech Park · 5 slots · by You</span>
+                    </div>
+                    <span className="pm-sched-badge upcoming">Upcoming</span>
+                  </div>
+                  <div className="pm-sched-item">
+                    <div className="pm-sched-time">Tomorrow, 11 AM</div>
+                    <div className="pm-sched-info">
+                      <span className="pm-sched-topic">Career Q&A Open House</span>
+                      <span className="pm-sched-detail">Main Canteen · 8 slots · by Rohan D.</span>
+                    </div>
+                    <span className="pm-sched-badge upcoming">Upcoming</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Live indicator */}
-      {isLive && (
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="absolute top-4 left-4 z-[800] bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/60 px-3 py-2 flex items-center gap-2"
-        >
-          <div className="w-2.5 h-2.5 rounded-full bg-[var(--mint-400)] animate-[pulse_1.5s_ease-in-out_infinite]" />
-          <span className="text-[11px] font-bold text-[var(--mint-600)]">LIVE</span>
-        </motion.div>
-      )}
-
-      {/* Notification toast */}
-      <AnimatePresence>
-        {notification && (
-          <NearbyNotification
-            pulse={notification}
-            onDismiss={handleNotificationAction}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Student Request Sheet */}
-      <AnimatePresence>
-        {selectedPulse && (
-          <StudentRequestSheet
-            pulse={selectedPulse}
-            userPos={userPos}
-            onRequest={handleRequest}
-            onClose={() => setSelectedPulse(null)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Alumni Pulse Panel (only when no request sheet is shown) */}
-      {!selectedPulse && (
-        <PulsePanel
-          onGoLive={handleGoLive}
-          isLive={isLive}
-          onStopLive={handleStopLive}
-        />
+      {/* Toast */}
+      {toast && (
+        <div className="pm-toast">
+          <Zap size={14} />
+          {toast}
+        </div>
       )}
     </div>
   )

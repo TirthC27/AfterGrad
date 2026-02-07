@@ -1,6 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useJsApiLoader } from '@react-google-maps/api'
+import React, { useState, useEffect } from 'react'
 import Card from '../components/Card'
 import Button from '../components/Button'
 import Badge from '../components/Badge'
@@ -29,16 +27,10 @@ function CountdownTimer({ targetMinutes }) {
 }
 
 export default function Mentorship({ addToast }) {
-  const [mode, setMode] = useState('virtual') // 'virtual' | 'physical'
+  const [mode, setMode] = useState('virtual')
   const [ads, setAds] = useState(mockAds)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ title: '', duration: '15 min', price: 'Free' })
-
-  // Load Google Maps once at parent level so it survives mode toggling
-  const { isLoaded, loadError } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-  })
 
   const createAd = () => {
     if (!form.title.trim()) return
@@ -61,35 +53,21 @@ export default function Mentorship({ addToast }) {
   }
 
   return (
-    <>
+    <div className="mt-page">
       <section className="section-label">Mentorship</section>
 
       {/* ─── Mode Toggle ─── */}
-      <div className="flex items-center gap-1 p-1 mb-5 bg-white/50 backdrop-blur-sm rounded-2xl border border-[var(--glass-border)] w-fit">
+      <div className="mt-mode-toggle">
         <button
           onClick={() => setMode('virtual')}
-          className={`
-            flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
-            border-none cursor-pointer font-[inherit] transition-all duration-300
-            ${mode === 'virtual'
-              ? 'bg-[var(--mint-400)] text-white shadow-[0_4px_16px_rgba(74,222,128,0.3)]'
-              : 'bg-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/40'
-            }
-          `}
+          className={`mt-mode-btn ${mode === 'virtual' ? 'active' : ''}`}
         >
           <Video size={16} />
           Virtual
         </button>
         <button
           onClick={() => setMode('physical')}
-          className={`
-            flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
-            border-none cursor-pointer font-[inherit] transition-all duration-300
-            ${mode === 'physical'
-              ? 'bg-[var(--mint-400)] text-white shadow-[0_4px_16px_rgba(74,222,128,0.3)]'
-              : 'bg-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/40'
-            }
-          `}
+          className={`mt-mode-btn ${mode === 'physical' ? 'active' : ''}`}
         >
           <MapPin size={16} />
           Nearby (Physical)
@@ -97,118 +75,104 @@ export default function Mentorship({ addToast }) {
       </div>
 
       {/* ─── Physical Mode ─── */}
-      <AnimatePresence mode="wait">
-        {mode === 'physical' && (
-          <motion.div
-            key="physical"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.25 }}
-          >
-            <PhysicalMentorship addToast={addToast} isLoaded={isLoaded} loadError={loadError} />
-          </motion.div>
-        )}
-
-        {/* ─── Virtual Mode ─── */}
-        {mode === 'virtual' && (
-          <motion.div
-            key="virtual"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.25 }}
-          >
-      <section className="section-label">Offer Virtual Mentorship</section>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-[11px] text-[var(--text-muted)]">Create mentorship sessions for students to book.</p>
-        <Button variant="primary" size="sm" onClick={() => setShowForm(!showForm)}>
-          <Plus size={14} /> New Ad
-        </Button>
-      </div>
-
-      {showForm && (
-        <Card hover={false} className="mb-4 animate-[scaleIn_0.2s_ease]">
-          <div className="flex flex-col gap-3">
-            <input
-              value={form.title}
-              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              placeholder="Session title (e.g. 15-min Career Advice)"
-              className="text-sm px-4 py-2.5 rounded-xl border border-[var(--glass-border)] bg-white/50 outline-none font-[inherit] text-[var(--text-primary)]"
-            />
-            <div className="flex gap-3">
-              <select
-                value={form.duration}
-                onChange={e => setForm(f => ({ ...f, duration: e.target.value }))}
-                className="text-sm px-4 py-2 rounded-xl border border-[var(--glass-border)] bg-white/50 outline-none font-[inherit] text-[var(--text-primary)] flex-1"
-              >
-                <option>15 min</option>
-                <option>30 min</option>
-                <option>60 min</option>
-              </select>
-              <input
-                value={form.price}
-                onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
-                placeholder="Price or Free"
-                className="text-sm px-4 py-2 rounded-xl border border-[var(--glass-border)] bg-white/50 outline-none font-[inherit] text-[var(--text-primary)] flex-1"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button variant="primary" size="sm" onClick={createAd}>Create</Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
-            </div>
-          </div>
-        </Card>
+      {mode === 'physical' && (
+        <div className="mt-panel-animate">
+          <PhysicalMentorship addToast={addToast} />
+        </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 animate-[fadeInUp_0.5s_ease]">
-        {ads.map((ad, i) => (
-          <Card key={ad.id} className="flex items-center gap-4" style={{ animationDelay: `${i * 60}ms` }}>
-            {/* Icon */}
-            <div className="w-12 h-12 rounded-2xl bg-[rgba(134,239,172,0.12)] flex items-center justify-center shrink-0">
-              <User size={24} className="text-[var(--mint-500)]" />
-            </div>
+      {/* ─── Virtual Mode ─── */}
+      {mode === 'virtual' && (
+        <div className="mt-panel-animate">
+          <section className="section-label">Offer Virtual Mentorship</section>
+          <div className="mt-virtual-header">
+            <p className="mt-virtual-subtitle">Create mentorship sessions for students to book.</p>
+            <Button variant="primary" size="sm" onClick={() => setShowForm(!showForm)}>
+              <Plus size={14} /> New Ad
+            </Button>
+          </div>
 
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <span className="text-[14px] font-semibold text-[var(--text-primary)] block truncate">{ad.title}</span>
-              <div className="flex items-center gap-3 mt-1 text-[11px] text-[var(--text-muted)]">
-                <span className="flex items-center gap-1"><Clock size={12} /> {ad.duration}</span>
-                <span className="flex items-center gap-1"><DollarSign size={12} /> {ad.price}</span>
-                <span className="flex items-center gap-1"><User size={12} /> {ad.requests} requests</span>
+          {showForm && (
+            <Card hover={false} className="mt-form-card">
+              <div className="mt-form-inner">
+                <input
+                  value={form.title}
+                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="Session title (e.g. 15-min Career Advice)"
+                  className="mt-form-input"
+                />
+                <div className="mt-form-row">
+                  <select
+                    value={form.duration}
+                    onChange={e => setForm(f => ({ ...f, duration: e.target.value }))}
+                    className="mt-form-select"
+                  >
+                    <option>15 min</option>
+                    <option>30 min</option>
+                    <option>60 min</option>
+                  </select>
+                  <input
+                    value={form.price}
+                    onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+                    placeholder="Price or Free"
+                    className="mt-form-input"
+                  />
+                </div>
+                <div className="mt-form-actions">
+                  <Button variant="primary" size="sm" onClick={createAd}>Create</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+                </div>
               </div>
-            </div>
+            </Card>
+          )}
 
-            {/* Status / Action */}
-            <div className="shrink-0 flex flex-col items-end gap-1.5">
-              {ad.status === 'open' && (
-                <>
-                  <Badge variant="default">Open</Badge>
-                  {ad.requests > 0 && (
-                    <Button variant="primary" size="sm" onClick={(e) => { e.stopPropagation(); acceptRequest(ad.id) }}>
-                      Accept
-                    </Button>
-                  )}
-                </>
-              )}
-              {ad.status === 'accepted' && (
-                <>
-                  <Badge variant="success" glow>
-                    <Shield size={10} /> Escrow Active
-                  </Badge>
-                  <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
-                    <span>Session in</span>
-                    <CountdownTimer targetMinutes={45} />
+          <div className="mt-ads-list">
+            {ads.map((ad, i) => (
+              <Card key={ad.id} className="mt-ad-card" style={{ animationDelay: `${i * 60}ms` }}>
+                {/* Icon */}
+                <div className="mt-ad-icon">
+                  <User size={24} className="text-[var(--mint-500)]" />
+                </div>
+
+                {/* Info */}
+                <div className="mt-ad-info">
+                  <span className="mt-ad-title">{ad.title}</span>
+                  <div className="mt-ad-meta">
+                    <span><Clock size={12} /> {ad.duration}</span>
+                    <span><DollarSign size={12} /> {ad.price}</span>
+                    <span><User size={12} /> {ad.requests} requests</span>
                   </div>
-                </>
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+                </div>
+
+                {/* Status / Action */}
+                <div className="mt-ad-actions">
+                  {ad.status === 'open' && (
+                    <>
+                      <Badge variant="default">Open</Badge>
+                      {ad.requests > 0 && (
+                        <Button variant="primary" size="sm" onClick={(e) => { e.stopPropagation(); acceptRequest(ad.id) }}>
+                          Accept
+                        </Button>
+                      )}
+                    </>
+                  )}
+                  {ad.status === 'accepted' && (
+                    <>
+                      <Badge variant="success" glow>
+                        <Shield size={10} /> Escrow Active
+                      </Badge>
+                      <div className="mt-ad-timer">
+                        <span>Session in</span>
+                        <CountdownTimer targetMinutes={45} />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

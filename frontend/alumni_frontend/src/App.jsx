@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import Sidebar from './components/Sidebar'
-import RightPanel from './components/RightPanel'
 import Dashboard from './pages/Dashboard'
 import Events from './pages/Events'
 import Mentorship from './pages/Mentorship'
@@ -35,7 +34,7 @@ function AppShell() {
           onToggleCollapse={() => setCollapsed(c => !c)}
         />
         <main className="content">
-          <Header />
+          {activePage === 'dashboard' && <Header />}
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -48,7 +47,6 @@ function AppShell() {
             <Route path="/social-connect" element={<SocialMediaConnect />} />
           </Routes>
         </main>
-        <RightPanel />
       </div>
     </div>
   )

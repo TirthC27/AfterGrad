@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { mentorship } from '../../localStore'
 import './MyRequests.css'
-
-const API_BASE = 'http://localhost:8001'
 
 /* Circular progress ring */
 function RingStat({ value, max, label, color, trend }) {
@@ -46,12 +46,12 @@ export default function MyRequests() {
   const [sortAsc, setSortAsc] = useState(false)
   const [cancellingId, setCancellingId] = useState(null)
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const STUDENT_ID = user?.id || 'student_001'
 
   const fetchRequests = () => {
-    fetch(`${API_BASE}/api/mentorship/requests/student?student_id=student_001`)
-      .then(r => r.json())
-      .then(data => { setRequests(data); setLoading(false) })
-      .catch(() => setLoading(false))
+    setRequests(mentorship.getStudentRequests(STUDENT_ID))
+    setLoading(false)
   }
 
   useEffect(() => { fetchRequests() }, [])
@@ -82,17 +82,11 @@ export default function MyRequests() {
     else { setSortCol(col); setSortAsc(true) }
   }
 
-  const cancelRequest = async (reqId) => {
+  const cancelRequest = (reqId) => {
     setCancellingId(reqId)
-    try {
-      const res = await fetch(`${API_BASE}/api/mentorship/requests/${reqId}/cancel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: 'student_001' }),
-      })
-      if (res.ok) fetchRequests()
-    } catch (e) { console.error(e) }
-    finally { setCancellingId(null) }
+    mentorship.cancelRequest(reqId)
+    fetchRequests()
+    setCancellingId(null)
   }
 
   const fmtDate = d => d ? new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'

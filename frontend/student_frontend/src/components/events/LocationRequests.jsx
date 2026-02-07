@@ -1,21 +1,20 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { events as eventsStore } from '../../localStore'
 import './LocationRequests.css'
-
-const API_BASE = 'http://localhost:8001'
-const CURRENT_STUDENT = 'student_001'
 
 export default function LocationRequests() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const CURRENT_STUDENT = user?.id || 'student_001'
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all') // all | pending | accepted | revoked
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/events/location-requests/all?student_id=${CURRENT_STUDENT}`)
-      .then(r => r.json())
-      .then(data => { setRequests(data); setLoading(false) })
-      .catch(() => setLoading(false))
+    setRequests(eventsStore.getStudentRequests(CURRENT_STUDENT))
+    setLoading(false)
   }, [])
 
   const filtered = filter === 'all'

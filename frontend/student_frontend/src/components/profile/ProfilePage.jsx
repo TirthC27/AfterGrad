@@ -1,38 +1,44 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import { auth as authStore, events as eventsStore, mentorship, lineage } from '../../localStore'
 import './ProfilePage.css'
 
-const PROFILE = {
-  name: 'Tirth Chudasama',
-  avatar: 'TC',
-  role: 'Student',
-  college: 'Charotar University of Science & Technology',
-  branch: 'Computer Engineering',
-  year: '3rd Year',
-  email: 'tirth.c@charusat.edu.in',
-  phone: '+91 98765 43210',
-  bio: 'Passionate full-stack developer and hackathon enthusiast. Building AfterGrad to bridge the gap between students and alumni. Love building products that make a real-world impact.',
-  location: 'Anand, Gujarat',
-  github: 'TirthC27',
-  linkedin: 'tirth-chudasama',
-  skills: ['React', 'Python', 'FastAPI', 'Node.js', 'Supabase', 'Tailwind CSS', 'System Design', 'Figma'],
-  interests: ['Hackathons', 'AI/ML', 'Startup Culture', 'Open Source', 'Product Design'],
-  stats: {
-    eventsHosted: 5,
-    mentorshipsRequested: 3,
-    sessionsCompleted: 1,
-    alumniConnected: 4,
-  },
-  achievements: [
-    { icon: '🏆', title: 'Hackathon Winner', desc: 'SIH 2024 Grand Finalist' },
-    { icon: '⭐', title: 'Top Contributor', desc: 'Open-source community' },
-    { icon: '🎯', title: 'Event Organizer', desc: 'Hosted 5+ college events' },
-    { icon: '💡', title: 'Innovation Award', desc: 'CHARUSAT TechFest 2025' },
-  ],
-}
-
 export default function ProfilePage() {
+  const { user } = useAuth()
+  const [profile, setProfile] = useState(null)
   const [editing, setEditing] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+  const [editForm, setEditForm] = useState({})
+
+  const uid = user?.id || 'student_001'
+
+  useEffect(() => {
+    const p = authStore.getProfile(uid)
+    if (p) { setProfile(p); setEditForm({ bio: p.bio || '', location: p.location || '', skills: (p.skills || []).join(', ') }) }
+  }, [uid])
+
+  if (!profile) return <div style={{ padding: 40, color: '#fff' }}>Loading profile…</div>
+
+  // Compute live stats
+  const myEvents = eventsStore.getAll().filter(e => e.created_by === uid)
+  const myRequests = mentorship.getStudentRequests(uid)
+  const mySessions = mentorship.getStudentSessions(uid)
+  const myLineage = lineage.getForStudent(uid)
+  const stats = {
+    eventsHosted: myEvents.length,
+    mentorshipsRequested: myRequests.length,
+    sessionsCompleted: mySessions.filter(s => s.status === 'completed').length,
+    alumniConnected: myLineage.length,
+  }
+
+  const handleSave = () => {
+    const patch = { bio: editForm.bio, location: editForm.location, skills: editForm.skills.split(',').map(s => s.trim()).filter(Boolean) }
+    authStore.updateProfile(uid, patch)
+    setProfile(authStore.getProfile(uid))
+    setEditing(false)
+  }
+
+  const initials = (profile.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
   return (
     <div className="profile-page">
@@ -41,20 +47,20 @@ export default function ProfilePage() {
         <div className="hero-bg-pattern" />
         <div className="profile-hero-content">
           <div className="profile-avatar-ring">
-            <div className="profile-avatar-large">{PROFILE.avatar}</div>
+            <div className="profile-avatar-large">{initials}</div>
             <div className="profile-online-dot" />
           </div>
           <div className="profile-hero-info">
-            <h1 className="profile-name">{PROFILE.name}</h1>
-            <p className="profile-tagline">{PROFILE.role} · {PROFILE.branch}</p>
-            <p className="profile-college">{PROFILE.college}</p>
+            <h1 className="profile-name">{profile.name}</h1>
+            <p className="profile-tagline">{profile.role} · {profile.college}</p>
+            <p className="profile-college">Graduation: {profile.graduation_year}</p>
             <div className="profile-hero-badges">
-              <span className="badge-pill">{PROFILE.year}</span>
-              <span className="badge-pill loc">📍 {PROFILE.location}</span>
+              <span className="badge-pill">{profile.role}</span>
+              {profile.location && <span className="badge-pill loc">📍 {profile.location}</span>}
             </div>
           </div>
-          <button className="edit-profile-btn" onClick={() => setEditing(e => !e)}>
-            {editing ? '✓ Done' : '✎ Edit Profile'}
+          <button className="edit-profile-btn" onClick={() => { if (editing) handleSave(); else setEditing(true) }}>
+            {editing ? '✓ Save' : '✎ Edit Profile'}
           </button>
         </div>
       </div>
@@ -62,10 +68,10 @@ export default function ProfilePage() {
       {/* Stats bar */}
       <div className="profile-stats-bar">
         {[
-          { label: 'Events Hosted', value: PROFILE.stats.eventsHosted, icon: '📅' },
-          { label: 'Mentorship Requests', value: PROFILE.stats.mentorshipsRequested, icon: '🤝' },
-          { label: 'Sessions Done', value: PROFILE.stats.sessionsCompleted, icon: '💬' },
-          { label: 'Alumni Connected', value: PROFILE.stats.alumniConnected, icon: '🔗' },
+          { label: 'Events Hosted', value: stats.eventsHosted, icon: '📅' },
+          { label: 'Mentorship Requests', value: stats.mentorshipsRequested, icon: '🤝' },
+          { label: 'Sessions Done', value: stats.sessionsCompleted, icon: '💬' },
+          { label: 'Alumni Connected', value: stats.alumniConnected, icon: '🔗' },
         ].map(s => (
           <div key={s.label} className="stat-cell">
             <span className="stat-icon">{s.icon}</span>
@@ -95,48 +101,64 @@ export default function ProfilePage() {
             {/* About */}
             <div className="profile-card bio-card">
               <h3>About</h3>
-              <p className="bio-text">{PROFILE.bio}</p>
+              {editing ? (
+                <textarea className="donate-input" style={{ width: '100%', minHeight: 80 }} value={editForm.bio} onChange={e => setEditForm(f => ({ ...f, bio: e.target.value }))} />
+              ) : (
+                <p className="bio-text">{profile.bio || 'No bio yet.'}</p>
+              )}
               <div className="contact-row">
-                <a href={`mailto:${PROFILE.email}`} className="contact-link">✉ {PROFILE.email}</a>
-                <span className="contact-link">☎ {PROFILE.phone}</span>
+                <a href={`mailto:${profile.email}`} className="contact-link">✉ {profile.email}</a>
               </div>
               <div className="social-row">
-                <a href={`https://github.com/${PROFILE.github}`} target="_blank" rel="noreferrer" className="social-btn github">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.43 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.08 1.85 1.24 1.85 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23.96-.27 1.98-.4 3-.4s2.04.14 3 .4c2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.82.58C20.57 21.8 24 17.31 24 12c0-6.63-5.37-12-12-12z"/></svg>
-                  GitHub
-                </a>
-                <a href={`https://linkedin.com/in/${PROFILE.linkedin}`} target="_blank" rel="noreferrer" className="social-btn linkedin">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.47 2H3.53A1.45 1.45 0 002 3.47v17.06A1.45 1.45 0 003.47 22h17.06A1.45 1.45 0 0022 20.53V3.47A1.45 1.45 0 0020.47 2zM8.09 18.74h-3v-9h3v9zM6.59 8.48a1.56 1.56 0 110-3.12 1.56 1.56 0 010 3.12zM18.91 18.74h-3v-4.26c0-1.08-.02-2.47-1.5-2.47-1.51 0-1.74 1.18-1.74 2.4v4.33h-3v-9h2.89v1.23h.04a3.18 3.18 0 012.85-1.56c3.04 0 3.6 2 3.6 4.6v4.73z"/></svg>
-                  LinkedIn
-                </a>
+                {profile.github_url && (
+                  <a href={profile.github_url} target="_blank" rel="noreferrer" className="social-btn github">
+                    GitHub
+                  </a>
+                )}
+                {profile.linkedin_url && (
+                  <a href={profile.linkedin_url} target="_blank" rel="noreferrer" className="social-btn linkedin">
+                    LinkedIn
+                  </a>
+                )}
               </div>
             </div>
 
             {/* Skills */}
             <div className="profile-card">
               <h3>Skills</h3>
-              <div className="tag-cloud">
-                {PROFILE.skills.map(s => (
-                  <span key={s} className="skill-tag">{s}</span>
-                ))}
-              </div>
+              {editing ? (
+                <input className="donate-input" style={{ width: '100%' }} value={editForm.skills} onChange={e => setEditForm(f => ({ ...f, skills: e.target.value }))} placeholder="Comma-separated skills" />
+              ) : (
+                <div className="tag-cloud">
+                  {(profile.skills || []).map(s => (
+                    <span key={s} className="skill-tag">{s}</span>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Interests */}
+            {/* Location */}
             <div className="profile-card">
-              <h3>Interests</h3>
-              <div className="tag-cloud">
-                {PROFILE.interests.map(i => (
-                  <span key={i} className="interest-tag">{i}</span>
-                ))}
-              </div>
+              <h3>Location</h3>
+              {editing ? (
+                <input className="donate-input" style={{ width: '100%' }} value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} />
+              ) : (
+                <div className="tag-cloud">
+                  <span className="interest-tag">📍 {profile.location || 'Not set'}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {activeTab === 'achievements' && (
           <div className="achievements-grid">
-            {PROFILE.achievements.map((a, i) => (
+            {[
+              { icon: '📅', title: `${stats.eventsHosted} Events`, desc: 'Events hosted on AfterGrad' },
+              { icon: '🤝', title: `${stats.mentorshipsRequested} Requests`, desc: 'Mentorship requests sent' },
+              { icon: '💬', title: `${stats.sessionsCompleted} Sessions`, desc: 'Completed mentorship sessions' },
+              { icon: '🔗', title: `${stats.alumniConnected} Alumni`, desc: 'Connected alumni' },
+            ].map((a, i) => (
               <div key={i} className="achievement-card" style={{ animationDelay: `${i * 100}ms` }}>
                 <span className="achievement-icon">{a.icon}</span>
                 <h4>{a.title}</h4>

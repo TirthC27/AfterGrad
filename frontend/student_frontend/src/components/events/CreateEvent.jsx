@@ -1,12 +1,13 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { events as eventsStore } from '../../localStore'
 import './CreateEvent.css'
-
-const API_BASE = 'http://localhost:8001'
-const CURRENT_ALUMNI = 'alumni_001' // mock: Priya Sharma
 
 export default function CreateEvent() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const CURRENT_USER = user?.id || 'student_001'
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [form, setForm] = useState({
@@ -39,20 +40,11 @@ export default function CreateEvent() {
         geo_lat: form.event_type === 'offline' ? parseFloat(form.geo_lat) || null : null,
         geo_lng: form.event_type === 'offline' ? parseFloat(form.geo_lng) || null : null,
         allow_requests: form.allow_requests,
-        created_by: CURRENT_ALUMNI,
+        created_by: CURRENT_USER,
       }
-      const res = await fetch(`${API_BASE}/api/events`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (res.ok) {
-        setSuccess(true)
-        setTimeout(() => navigate('/events'), 1500)
-      } else {
-        const err = await res.json()
-        alert(err.detail || 'Failed to create event')
-      }
+      eventsStore.create(payload)
+      setSuccess(true)
+      setTimeout(() => navigate('/events'), 1500)
     } catch (e) {
       alert('Network error')
     }

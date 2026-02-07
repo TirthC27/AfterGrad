@@ -1,14 +1,9 @@
-@import "tailwindcss";
-
-/* ── Override Tailwind's radius tokens so our vars win ── */
-@theme {
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 20px;
-  --radius-xl: 24px;
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* ── Design tokens (unlayered ⇒ always beats Tailwind layers) ── */
 :root {
   --mint-50: #f0fdf7;
   --mint-100: #dcfce8;
@@ -18,16 +13,28 @@
   --mint-500: #22c55e;
   --mint-600: #16a34a;
 
+  /* Aliases so old var(--blue-*) refs still work */
+  --blue-50: #f0fdf7;
+  --blue-100: #dcfce8;
+  --blue-200: #bbf7d0;
+  --blue-300: #86efac;
+  --blue-400: #4ade80;
+  --blue-500: #22c55e;
+  --blue-600: #16a34a;
+
   --glass-bg: rgba(255, 255, 255, 0.45);
   --glass-bg-strong: rgba(255, 255, 255, 0.65);
   --glass-border: rgba(255, 255, 255, 0.6);
   --glass-shadow: 0 8px 32px rgba(134, 239, 172, 0.12);
   --card-shadow: 0 4px 20px rgba(134, 239, 172, 0.1);
-  --neumorphic-shadow: 6px 6px 12px rgba(163, 230, 190, 0.2), -6px -6px 12px rgba(255, 255, 255, 0.7);
 
   --text-primary: #1a3a2a;
   --text-secondary: #4a7a5a;
   --text-muted: #8aaa9a;
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
 }
 
 body {
@@ -38,395 +45,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-#root {
-  min-height: 100vh;
-}
+#root { min-height: 100vh; }
 
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--mint-300);
-  border-radius: 3px;
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--mint-300); border-radius: 3px; }
 
-/* ────────────────────────────────────────────────
-   Keyframe animations
-   ──────────────────────────────────────────────── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to { opacity: 1; transform: translateY(0); }
 }
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-20px); }
-  to   { opacity: 1; transform: translateX(0); }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to   { opacity: 1; transform: scale(1); }
-}
-@keyframes growUp {
-  from { transform: scaleY(0); }
-  to   { transform: scaleY(1); }
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.6; }
-}
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-@keyframes glow {
-  0%, 100% { box-shadow: 0 0 6px rgba(74, 222, 128, 0.3); }
-  50%      { box-shadow: 0 0 18px rgba(74, 222, 128, 0.5); }
-}
-@keyframes countUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ────────────────────────────────────────────────
-   App Layout
-   ──────────────────────────────────────────────── */
-.app-layout {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  min-height: 100vh;
-  gap: 0;
-  transition: grid-template-columns 0.3s ease;
-}
-.app-layout.sidebar-collapsed {
-  grid-template-columns: 68px 1fr;
-}
-.main-content {
-  padding: 28px 32px;
-  overflow-y: auto;
-  max-height: 100vh;
-}
-
-/* ────────────────────────────────────────────────
-   Section Labels
-   ──────────────────────────────────────────────── */
-.section-label {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 24px 0 14px 4px;
-  position: relative;
-  padding-left: 10px;
-}
-.section-label::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 2px; bottom: 2px;
-  width: 3px;
-  background: var(--mint-400);
-  border-radius: 2px;
-}
-
-/* ────────────────────────────────────────────────
-   Essentials Grid
-   ──────────────────────────────────────────────── */
-.essentials-grid {
-  display: grid;
-  grid-template-columns: 1.6fr 0.8fr 0.8fr;
-  gap: 16px;
-  animation: fadeInUp 0.5s ease;
-}
-.essentials-right-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.essentials-calories-card {
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(16px);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  box-shadow: var(--card-shadow);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  animation: fadeInUp 0.5s ease 0.2s both;
-}
-.calories-ring-container {
-  position: relative;
-  width: 110px;
-  height: 110px;
-}
-.calories-ring { width: 100%; height: 100%; }
-.calories-text {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.calories-number {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1;
-}
-.calories-label {
-  font-size: 10px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-.total-time-badge {
-  background: rgba(134, 239, 172, 0.15);
-  border-radius: var(--radius-sm);
-  padding: 8px 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.total-time-label  { font-size: 10px; color: var(--text-muted); }
-.total-time-value  { font-size: 18px; font-weight: 700; color: var(--text-primary); }
-.total-time-sub    { font-size: 10px; color: var(--text-muted); }
-
-/* ────────────────────────────────────────────────
-   Recommended Grid
-   ──────────────────────────────────────────────── */
-.recommended-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 16px;
-  animation: fadeInUp 0.5s ease 0.1s both;
-}
-.recommended-right {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-/* ────────────────────────────────────────────────
-   Calculations Row
-   ──────────────────────────────────────────────── */
-.calculations-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  animation: fadeInUp 0.5s ease 0.15s both;
-}
-
-/* ────────────────────────────────────────────────
-   Header
-   ──────────────────────────────────────────────── */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 4px;
-}
-.greeting {
-  font-size: 26px;
-  font-weight: 400;
-  color: var(--text-primary);
-}
-.greeting strong { font-weight: 700; }
-.subtitle {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-.search-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  border-radius: 50px;
-  padding: 10px 18px;
-  min-width: 240px;
-}
-.search-box input {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 13px;
-  color: var(--text-primary);
-  font-family: inherit;
-  flex: 1;
-}
-.search-box input::placeholder { color: var(--text-muted); }
-.search-mic {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-.search-mic:hover { opacity: 1; }
-
-/* ────────────────────────────────────────────────
-   Dashboard – Chart Card (lineage)
-   ──────────────────────────────────────────────── */
-.lineage-card {
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(16px);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  box-shadow: var(--card-shadow);
-  cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  animation: fadeInUp 0.5s ease;
-  position: relative;
-  overflow: hidden;
-}
-.lineage-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(134, 239, 172, 0.18);
-}
-.lineage-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-.lineage-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.lineage-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  background: rgba(134, 239, 172, 0.15);
-  border-radius: 8px;
-}
-.lineage-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.dropdown-chip {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(134, 239, 172, 0.12);
-  border: 1px solid rgba(134, 239, 172, 0.25);
-  border-radius: 20px;
-  padding: 5px 12px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.2s;
-}
-.dropdown-chip:hover { background: rgba(134, 239, 172, 0.2); }
-.lineage-subtitle {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-bottom: 16px;
-}
-.lineage-chart-area {
-  position: relative;
-  height: 150px;
-  margin-bottom: 8px;
-}
-.chart-grid {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  pointer-events: none;
-}
-.grid-line { height: 1px; background: rgba(255, 255, 255, 0.5); }
-.chart-bars {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  padding-bottom: 20px;
-}
-.bar-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  cursor: pointer;
-}
-.bar-stack {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 120px;
-}
-.bar {
-  width: 10px;
-  border-radius: 5px 5px 2px 2px;
-  transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transform-origin: bottom;
-}
-.bar-mentorship { background: linear-gradient(180deg, #4ade80, #22c55e); opacity: 0.9; }
-.bar-referral   { background: linear-gradient(180deg, #86efac, #4ade80); opacity: 0.7; }
-.bar-guidance   { background: linear-gradient(180deg, #bbf7d0, #86efac); opacity: 0.55; }
-.bar-group.hovered .bar {
-  filter: brightness(1.15);
-  box-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
-}
-.bar-label { font-size: 10px; color: var(--text-muted); font-weight: 500; }
-.chart-tooltip {
-  position: absolute;
-  transform: translate(-50%, -100%);
-  background: rgba(30, 60, 40, 0.92);
-  backdrop-filter: blur(8px);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 11px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  pointer-events: none;
-  z-index: 10;
-  white-space: nowrap;
-  animation: scaleIn 0.15s ease;
-}
-.chart-tooltip strong { font-size: 12px; font-weight: 600; }
-.chart-tooltip span   { font-size: 10px; opacity: 0.8; }
-.lineage-footer { display: flex; justify-content: center; }
-.expand-hint {
-  font-size: 10px;
-  color: var(--mint-500);
-  font-weight: 500;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-.lineage-card:hover .expand-hint { opacity: 1; }
-
-/* ────────────────────────────────────────────────
-   Google Maps Overrides
-   ──────────────────────────────────────────────── */
-@keyframes pulse-ring {
-  0%   { transform: scale(0.8); opacity: 0.6; }
-  100% { transform: scale(2.2); opacity: 0; }
-}
-
-/* Hide Google Maps branding / copyright bar to keep clean UI */
-.gm-style .gm-style-cc,
-.gm-style a[href^="https://maps.google.com"] {
-  font-size: 9px !important;
-}
-/* Give the map container rounded corners */
-.gm-style {
-  border-radius: var(--radius-lg);
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

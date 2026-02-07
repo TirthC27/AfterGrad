@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import { mentorship } from '../../localStore'
 import './MySessions.css'
 
-const API_BASE = 'http://localhost:8001'
-
 const COLUMN_CONFIG = {
-  scheduled:           { title: 'Scheduled',  icon: '📅', accent: '#3b82f6' },
+  scheduled:           { title: 'Scheduled',  icon: '📅', accent: '#22c55e' },
   awaiting_completion: { title: 'Awaiting',   icon: '⏳', accent: '#f59e0b' },
   completed:           { title: 'Completed',  icon: '✅', accent: '#4ade80' },
 }
@@ -14,31 +14,21 @@ export default function MySessions() {
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
   const [completingId, setCompletingId] = useState(null)
+  const { user } = useAuth()
+  const STUDENT_ID = user?.id || 'student_001'
 
   const fetchSessions = () => {
-    fetch(`${API_BASE}/api/mentorship/sessions/student?student_id=student_001`)
-      .then(r => r.json())
-      .then(data => { setSessions(data); setLoading(false) })
-      .catch(() => setLoading(false))
+    setSessions(mentorship.getStudentSessions(STUDENT_ID))
+    setLoading(false)
   }
 
   useEffect(() => { fetchSessions() }, [])
 
-  const confirmComplete = async (sessionId) => {
+  const confirmComplete = (sessionId) => {
     setCompletingId(sessionId)
-    try {
-      const res = await fetch(`${API_BASE}/api/mentorship/sessions/${sessionId}/complete-student`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: 'student_001' }),
-      })
-      if (res.ok) fetchSessions()
-      else {
-        const err = await res.json()
-        alert(err.detail || 'Cannot complete yet')
-      }
-    } catch (e) { console.error(e) }
-    finally { setCompletingId(null) }
+    mentorship.completeSessionStudent(sessionId)
+    fetchSessions()
+    setCompletingId(null)
   }
 
   const grouped = Object.keys(COLUMN_CONFIG).reduce((acc, key) => {

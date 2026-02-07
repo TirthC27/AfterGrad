@@ -1,12 +1,18 @@
 import React from 'react'
+import { useAuth } from '../context/AuthContext'
 import './Header.css'
 
 export default function Header() {
+  const { user } = useAuth()
+  const firstName = user?.name?.split(' ')[0] || 'Student'
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening'
+
   return (
     <header className="header">
       <div className="header-left">
         <h1 className="greeting">
-          Good Morning, <strong>Priya!</strong>
+          {greeting}, <strong>{firstName}!</strong>
         </h1>
         <p className="subtitle">Ignite your passion, let's pursue your goals!</p>
       </div>

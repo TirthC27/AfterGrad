@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { events as eventsStore } from '../../localStore'
+import InviteAlumni from './InviteAlumni'
 import './EventDetail.css'
-
-const API_BASE = 'http://localhost:8001'
-const CURRENT_STUDENT = 'student_001'
 
 export default function EventDetail() {
   const { eventId } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const CURRENT_STUDENT = user?.id || 'student_001'
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selectedAlumni, setSelectedAlumni] = useState(null)
@@ -16,74 +18,33 @@ export default function EventDetail() {
   const [requestStatus, setRequestStatus] = useState({}) // { alumni_id: {status, request_id} }
   const [location, setLocation] = useState(null)
   const [sending, setSending] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
 
-  // Fetch event detail + request statuses
   useEffect(() => {
-    async function load() {
-      try {
-        const [evtRes, statusRes] = await Promise.all([
-          fetch(`${API_BASE}/api/events/${eventId}`),
-          fetch(`${API_BASE}/api/events/${eventId}/request-status?student_id=${CURRENT_STUDENT}`),
-        ])
-        const evtData = await evtRes.json()
-        const statusData = await statusRes.json()
-        setEvent(evtData)
-        if (statusData.status !== 'none') {
-          setRequestStatus(prev => ({
-            ...prev,
-            [statusData.alumni_id]: { status: statusData.status, request_id: statusData.request_id }
-          }))
-          // If accepted, try fetching location
-          if (statusData.status === 'accepted' && evtData.event_type === 'offline') {
-            fetchLocation()
-          }
-        }
-      } catch (e) {
-        console.error('Failed to load event', e)
-      }
-      setLoading(false)
+    const evtData = eventsStore.getById(eventId)
+    const statusData = eventsStore.getRequestStatus(eventId, CURRENT_STUDENT)
+    setEvent(evtData)
+    if (statusData.status) {
+      setRequestStatus(prev => ({ ...prev, [statusData.alumni_id]: { status: statusData.status, request_id: statusData.request_id } }))
+      if (statusData.status === 'accepted' && evtData?.event_type === 'offline') fetchLocation()
     }
-    load()
+    setLoading(false)
   }, [eventId])
 
-  async function fetchLocation() {
-    try {
-      const res = await fetch(`${API_BASE}/api/events/${eventId}/location?student_id=${CURRENT_STUDENT}`)
-      if (res.ok) {
-        const data = await res.json()
-        setLocation(data)
-      }
-    } catch (e) { /* no access */ }
+  function fetchLocation() {
+    const data = eventsStore.getLocation(eventId, CURRENT_STUDENT)
+    if (data.access_granted) setLocation(data)
   }
 
-  async function sendRequest() {
+  function sendRequest() {
     if (!selectedAlumni) return
     setSending(true)
     try {
-      const res = await fetch(`${API_BASE}/api/events/${eventId}/request`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          student_id: CURRENT_STUDENT,
-          alumni_id: selectedAlumni.id,
-          message: requestMessage,
-        }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setRequestStatus(prev => ({
-          ...prev,
-          [selectedAlumni.id]: { status: 'pending', request_id: data.id }
-        }))
-        setShowRequestModal(false)
-        setRequestMessage('')
-      } else {
-        const err = await res.json()
-        alert(err.detail || 'Failed to send request')
-      }
-    } catch (e) {
-      alert('Network error')
-    }
+      const req = eventsStore.sendRequest({ event_id: eventId, student_id: CURRENT_STUDENT, alumni_id: selectedAlumni.id, message: requestMessage })
+      setRequestStatus(prev => ({ ...prev, [selectedAlumni.id]: { status: 'pending', request_id: req.id } }))
+      setShowRequestModal(false)
+      setRequestMessage('')
+    } catch (e) { alert(e.message) }
     setSending(false)
   }
 
@@ -143,6 +104,11 @@ export default function EventDetail() {
           </div>
           {event.allow_requests && (
             <div className="requests-open-badge">🟢 Requests Open</div>
+          )}
+          {event.created_by === CURRENT_STUDENT && (
+            <button className="invite-alumni-hero-btn" onClick={() => setShowInviteModal(true)}>
+              🎓 Invite Alumni
+            </button>
           )}
         </div>
         <h1 className="event-hero-title">{event.title}</h1>
@@ -336,6 +302,11 @@ export default function EventDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Invite Alumni Modal */}
+      {showInviteModal && (
+        <InviteAlumni eventId={eventId} onClose={() => setShowInviteModal(false)} />
       )}
     </div>
   )

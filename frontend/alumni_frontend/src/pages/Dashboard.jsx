@@ -1,225 +1,263 @@
-import React, { useState, useEffect } from 'react'
-import Card from '../components/Card'
-import Badge from '../components/Badge'
-import { Users, Briefcase, Clock, CheckCircle, Award, TrendingUp } from 'lucide-react'
-import SocialMediaConnect from './SocialMediaConnect'
+import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Users, Calendar, Briefcase, Bell, Clock, MapPin, Video, Mail } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { auth, events as eventsStore, mentorship, gigs as gigsStore, invitations as invStore } from '../localStore'
 
-const barData = [
-  { day: 'Mon', mentees: 65, gigs: 40, events: 30 },
-  { day: 'Tue', mentees: 80, gigs: 55, events: 45 },
-  { day: 'Wed', mentees: 50, gigs: 35, events: 55 },
-  { day: 'Thu', mentees: 70, gigs: 60, events: 40 },
-  { day: 'Fri', mentees: 45, gigs: 50, events: 60 },
-  { day: 'Sat', mentees: 90, gigs: 70, events: 35 },
-  { day: 'Sun', mentees: 55, gigs: 30, events: 50 },
-]
+export default function Dashboard() {
+  const { user } = useAuth()
+  const ALUMNI_ID = user?.id || 'alumni_001'
+  const [profile, setProfile] = useState(null)
+  const [stats, setStats] = useState({ offerings: 0, requests: 0, sessions: 0, events: 0, gigs: 0, invitations: 0 })
+  const [recentEvents, setRecentEvents] = useState([])
+  const [recentGigs, setRecentGigs] = useState([])
+  const [recentSessions, setRecentSessions] = useState([])
+  const [pendingInvitations, setPendingInvitations] = useState([])
 
-const activities = [
-  { color: '#e74c7a', title: 'Resume Review Request from Priya', desc: 'Student from IIT Delhi, Class of 2026' },
-  { color: '#6c5ce7', title: 'New Gig Application: React Developer', desc: '3 applicants, deadline Feb 28' },
-  { color: '#00b894', title: 'Alumni Reunion Webinar', desc: 'Join 45 fellow alumni this Friday at 6 PM' },
-]
+  const reload = () => {
+    setProfile(auth.getProfile(ALUMNI_ID))
+    const offerings = mentorship.getAlumniOfferings(ALUMNI_ID)
+    const requests = mentorship.getAlumniRequests(ALUMNI_ID)
+    const sessions = mentorship.getAlumniSessions(ALUMNI_ID)
+    const allEvents = eventsStore.getAll()
+    const allGigs = gigsStore.getAll()
+    const invitations = invStore.getForAlumni(ALUMNI_ID)
 
-export default function Dashboard({ addToast }) {
-  const [loaded, setLoaded] = useState(false)
-  const [hoveredBar, setHoveredBar] = useState(null)
-  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 })
+    const myEvents = allEvents.filter(e => e.created_by === ALUMNI_ID)
+    const myGigs = allGigs.filter(g => g.posted_by === ALUMNI_ID)
+    const pendingInv = invitations.filter(i => i.status === 'pending')
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoaded(true), 100)
-    return () => clearTimeout(t)
-  }, [])
-
-  const maxVal = 100
-
-  const handleBarHover = (e, day) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const parentRect = e.currentTarget.closest('.lineage-chart-area').getBoundingClientRect()
-    setTooltipPos({
-      x: rect.left - parentRect.left + rect.width / 2,
-      y: rect.top - parentRect.top - 8,
+    setStats({
+      offerings: offerings.length,
+      requests: requests.filter(r => r.status === 'pending').length,
+      sessions: sessions.length,
+      events: myEvents.length,
+      gigs: myGigs.length,
+      invitations: pendingInv.length,
     })
-    setHoveredBar(day)
+    setRecentEvents(myEvents.slice(0, 3))
+    setRecentGigs(myGigs.slice(0, 3))
+    setRecentSessions(sessions.filter(s => s.status === 'scheduled').slice(0, 3))
+    setPendingInvitations(pendingInv.slice(0, 5))
+  }
+
+  useEffect(() => { reload() }, [])
+
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
+
+  const handleInvitation = (id, action) => {
+    if (action === 'accept') invStore.accept(id)
+    else invStore.decline(id)
+    reload()
   }
 
   return (
-    <>
-      <section className="section-label">Essentials</section>
-      <div className="essentials-grid">
-        {/* Chart card — same layout as AlumniLineageCard */}
-        <div className="lineage-card">
-          <div className="lineage-header">
-            <div className="lineage-title-row">
-              <div className="lineage-icon">
-                <TrendingUp size={18} className="text-[var(--mint-500)]" />
-              </div>
-              <span className="lineage-title">Engagement Overview</span>
-            </div>
-            <button className="dropdown-chip">
-              This Week
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-          </div>
-          <p className="lineage-subtitle">Track your mentorship sessions, gigs, and event participation</p>
+    <div style={{ animation: 'fadeInUp 0.4s ease' }}>
+      <div className="page-header">
+        <h1 className="page-title">Welcome back, {profile?.name?.split(' ')[0] || 'Alumni'} 👋</h1>
+        <p className="page-subtitle">{profile?.company} · {profile?.job_title}</p>
+      </div>
 
-          <div className="lineage-chart-area">
-            <div className="chart-grid">
-              {[0,1,2,3,4].map(i => <div key={i} className="grid-line" />)}
-            </div>
-            <div className="chart-bars">
-              {barData.map((d, idx) => (
-                <div
-                  key={d.day}
-                  className={`bar-group ${hoveredBar === d.day ? 'hovered' : ''}`}
-                  onMouseEnter={(e) => handleBarHover(e, d.day)}
-                  onMouseLeave={() => setHoveredBar(null)}
-                >
-                  <div className="bar-stack">
-                    <div className="bar bar-mentorship" style={{ height: loaded ? `${(d.mentees / maxVal) * 100}%` : '0%', transitionDelay: `${idx * 60}ms` }} />
-                    <div className="bar bar-referral" style={{ height: loaded ? `${(d.gigs / maxVal) * 100}%` : '0%', transitionDelay: `${idx * 60 + 30}ms` }} />
-                    <div className="bar bar-guidance" style={{ height: loaded ? `${(d.events / maxVal) * 100}%` : '0%', transitionDelay: `${idx * 60 + 60}ms` }} />
+      <div className="stats-grid">
+        <div className="stat-card" style={{ animationDelay: '0ms' }}>
+          <Users size={24} style={{ color: 'var(--blue-400)', marginBottom: 8 }} />
+          <div className="stat-value">{stats.offerings}</div>
+          <div className="stat-label">Active Offerings</div>
+        </div>
+        <div className="stat-card" style={{ animationDelay: '80ms' }}>
+          <Bell size={24} style={{ color: '#f59e0b', marginBottom: 8 }} />
+          <div className="stat-value">{stats.requests}</div>
+          <div className="stat-label">Pending Requests</div>
+        </div>
+        <div className="stat-card" style={{ animationDelay: '160ms' }}>
+          <Clock size={24} style={{ color: '#22c55e', marginBottom: 8 }} />
+          <div className="stat-value">{stats.sessions}</div>
+          <div className="stat-label">Sessions</div>
+        </div>
+        <div className="stat-card" style={{ animationDelay: '240ms' }}>
+          <Calendar size={24} style={{ color: '#8b5cf6', marginBottom: 8 }} />
+          <div className="stat-value">{stats.events}</div>
+          <div className="stat-label">Events Created</div>
+        </div>
+        <div className="stat-card" style={{ animationDelay: '320ms' }}>
+          <Briefcase size={24} style={{ color: '#ec4899', marginBottom: 8 }} />
+          <div className="stat-value">{stats.gigs}</div>
+          <div className="stat-label">Gigs Posted</div>
+        </div>
+        <div className="stat-card" style={{ animationDelay: '400ms' }}>
+          <Mail size={24} style={{ color: '#06b6d4', marginBottom: 8 }} />
+          <div className="stat-value">{stats.invitations}</div>
+          <div className="stat-label">New Invitations</div>
+        </div>
+      </div>
+
+      {/* Pending Student Invitations */}
+      {pendingInvitations.length > 0 && (
+        <div className="glass-card" style={{ marginBottom: 20 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Mail size={18} style={{ color: '#06b6d4' }} /> Student Invitations
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {pendingInvitations.map(inv => (
+              <div key={inv.id} style={{
+                padding: '14px 16px', borderRadius: 12,
+                background: 'rgba(6,182,212,0.04)', border: '1px solid rgba(6,182,212,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {inv.student?.name || 'A student'} invited you as <span style={{ color: '#06b6d4' }}>{inv.role}</span>
                   </div>
-                  <span className="bar-label">{d.day}</span>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                    Event: {inv.event?.title || 'Unknown'} · {formatDate(inv.event?.start_time)}
+                  </div>
+                  {inv.message && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>"{inv.message}"</div>}
                 </div>
-              ))}
-            </div>
-
-            {hoveredBar && (
-              <div className="chart-tooltip" style={{ left: tooltipPos.x, top: tooltipPos.y }}>
-                <strong>Weekly activity</strong>
-                <span>Mentees, Gigs, Events</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => handleInvitation(inv.id, 'accept')} style={{
+                    padding: '6px 14px', borderRadius: 8, border: 'none', background: 'rgba(34,197,94,0.1)',
+                    color: '#22c55e', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                  }}>Accept</button>
+                  <button onClick={() => handleInvitation(inv.id, 'decline')} style={{
+                    padding: '6px 14px', borderRadius: 8, border: 'none', background: 'rgba(239,68,68,0.1)',
+                    color: '#ef4444', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                  }}>Decline</button>
+                </div>
               </div>
-            )}
+            ))}
           </div>
+        </div>
+      )}
 
-          <div className="lineage-footer">
-            <span className="expand-hint">Your engagement is 24% higher than last week</span>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+        {/* Quick Actions */}
+        <div className="glass-card">
+          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, color: 'var(--text-primary)' }}>Quick Actions</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Link to="/mentorship" className="btn-primary" style={{ textAlign: 'center', textDecoration: 'none', display: 'block' }}>
+              Manage Mentorship Offerings
+            </Link>
+            <Link to="/events" className="btn-primary" style={{ textAlign: 'center', textDecoration: 'none', display: 'block', background: 'var(--blue-400)' }}>
+              Create New Event
+            </Link>
+            <Link to="/gigs" className="btn-primary" style={{ textAlign: 'center', textDecoration: 'none', display: 'block', background: '#8b5cf6' }}>
+              Post a Gig / Internship
+            </Link>
+            <Link to="/requests" className="btn-secondary" style={{ textAlign: 'center', textDecoration: 'none', display: 'block' }}>
+              View Pending Requests ({stats.requests})
+            </Link>
           </div>
         </div>
 
-        {/* Stats cards stack */}
-        <div className="essentials-right-stack">
-          <Card className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-[14px] bg-[rgba(134,239,172,0.12)] flex items-center justify-center shrink-0">
-              <Users size={24} className="text-[var(--mint-500)]" />
+        {/* Your Impact */}
+        <div className="glass-card">
+          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, color: 'var(--text-primary)' }}>Your Impact</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Students mentored</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{stats.sessions}</span>
             </div>
-            <div className="flex-1">
-              <span className="text-[13px] font-semibold text-[var(--text-primary)]">Active Mentees</span>
-              <span className="block text-[11px] text-[var(--text-muted)]">4 ongoing sessions</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Active offerings</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{stats.offerings}</span>
             </div>
-          </Card>
-          <Card className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-[14px] bg-[rgba(134,239,172,0.12)] flex items-center justify-center shrink-0">
-              <Briefcase size={24} className="text-[var(--mint-500)]" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Events hosted</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{stats.events}</span>
             </div>
-            <div className="flex-1">
-              <span className="text-[13px] font-semibold text-[var(--text-primary)]">Posted Gigs</span>
-              <span className="block text-[11px] text-[var(--text-muted)]">2 open, 1 in progress</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Gigs posted</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{stats.gigs}</span>
             </div>
-          </Card>
-        </div>
-
-        {/* Connections ring */}
-        <div className="essentials-calories-card">
-          <div className="calories-ring-container">
-            <svg viewBox="0 0 120 120" className="calories-ring">
-              <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(134,239,172,0.15)" strokeWidth="10" />
-              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--mint-400)" strokeWidth="10"
-                strokeDasharray="314" strokeDashoffset="62" strokeLinecap="round"
-                style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }} />
-            </svg>
-            <div className="calories-text">
-              <span className="calories-number">28</span>
-              <span className="calories-label">Connections</span>
+            <div style={{
+              marginTop: 8, padding: '12px 16px', background: 'rgba(34,197,94,0.06)',
+              borderRadius: 10, fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5
+            }}>
+              Your mentorship is making a difference. Keep helping the next generation of builders!
             </div>
           </div>
-          <div className="total-time-badge">
-            <span className="total-time-label">Alumni Since</span>
-            <span className="total-time-value">2020</span>
-            <span className="total-time-sub">IIT Delhi</span>
-          </div>
-        </div>
-      </div>
-
-      <section className="section-label">Connect & Discover</section>
-      <div className="recommended-grid">
-        {/* Recent activity feed */}
-        <Card hover={false} className="flex flex-col gap-2.5">
-          {activities.map((a, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-3.5 p-3 rounded-[var(--radius-sm)] bg-white/35 border border-white/40 cursor-pointer transition-all duration-200 hover:bg-white/55 hover:translate-x-1"
-              style={{ animationDelay: `${i * 80}ms`, animation: 'fadeInUp 0.4s ease both' }}
-            >
-              <div className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0" style={{ background: `${a.color}22` }}>
-                <Users size={24} stroke={a.color} />
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[13px] font-semibold text-[var(--text-primary)]">{a.title}</span>
-                <span className="text-[11px] text-[var(--text-muted)] leading-tight">{a.desc}</span>
-              </div>
-            </div>
-          ))}
-        </Card>
-
-        <div className="recommended-right">
-          {/* Profile completion */}
-          <Card hover={false} className="flex flex-col items-center justify-center text-center">
-            <div className="relative w-[100px] h-[60px] mb-2">
-              <svg viewBox="0 0 120 80" className="w-full h-full">
-                <path d="M 10 70 A 50 50 0 0 1 110 70" fill="none" stroke="rgba(134,239,172,0.15)" strokeWidth="8" strokeLinecap="round" />
-                <path d="M 10 70 A 50 50 0 0 1 110 70" fill="none" stroke="var(--mint-400)" strokeWidth="8" strokeLinecap="round"
-                  strokeDasharray="157" strokeDashoffset="47" />
-              </svg>
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2">
-                <span className="text-[22px] font-bold text-[var(--text-primary)]">70%</span>
-              </div>
-            </div>
-            <div className="text-[13px] font-semibold text-[var(--text-primary)]">Profile Strength</div>
-            <div className="text-[10px] text-[var(--text-muted)] mt-0.5">Connect LinkedIn to boost visibility</div>
-          </Card>
-
-          {/* Quick reports */}
-          <Card hover={false} className="flex flex-col gap-3.5">
-            <span className="text-sm font-semibold text-[var(--text-primary)]">Impact Summary</span>
-            <div className="flex flex-col gap-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[var(--mint-400)] shrink-0" />
-                <span className="text-xs font-medium text-[var(--text-primary)] flex-1">Mentees Helped</span>
-                <span className="text-[10px] text-[var(--text-muted)]">12 this year</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[var(--mint-300)] shrink-0" />
-                <span className="text-xs font-medium text-[var(--text-primary)] flex-1">Gigs Completed</span>
-                <span className="text-[10px] text-[var(--text-muted)]">5 total</span>
-              </div>
-            </div>
-          </Card>
         </div>
       </div>
 
-      <section className="section-label">At a Glance</section>
-      <div className="calculations-row">
-        {[
-          { icon: <Users size={28} className="text-[var(--mint-500)]" />, value: '12', total: ' mentees', label: 'Total Mentored' },
-          { icon: <Clock size={28} className="text-[var(--mint-500)]" />, value: '86', total: ' hrs', label: 'Time Given' },
-          { icon: <Award size={28} className="text-[var(--mint-500)]" />, value: '₹24k', total: '', label: 'Donations Made' },
-        ].map((item, i) => (
-          <Card key={i} className="flex flex-col items-center gap-2" style={{ animationDelay: `${i * 80}ms` }}>
-            <div className="w-[50px] h-[50px] rounded-2xl bg-[rgba(134,239,172,0.1)] flex items-center justify-center">
-              {item.icon}
-            </div>
-            <div className="flex items-baseline">
-              <span className="text-[28px] font-bold text-[var(--text-primary)]">{item.value}</span>
-              <span className="text-sm font-medium text-[var(--text-muted)]">{item.total}</span>
-            </div>
-            <span className="text-xs text-[var(--text-muted)] font-medium">{item.label}</span>
-          </Card>
-        ))}
-      </div>
+      {/* Recent Events */}
+      {recentEvents.length > 0 && (
+        <div className="glass-card" style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Your Recent Events</h3>
+            <Link to="/events" style={{ fontSize: 13, color: 'var(--blue-400)', textDecoration: 'none' }}>View All →</Link>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+            {recentEvents.map(evt => (
+              <div key={evt.id} style={{
+                padding: 14, borderRadius: 12, background: 'rgba(139,92,246,0.04)',
+                border: '1px solid rgba(139,92,246,0.1)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  {evt.event_type === 'online' ? <Video size={14} style={{ color: '#22c55e' }} /> : <MapPin size={14} style={{ color: '#22c55e' }} />}
+                  <span style={{ fontSize: 11, fontWeight: 600, color: evt.event_type === 'online' ? '#22c55e' : '#22c55e' }}>
+                    {evt.event_type === 'online' ? 'Online' : 'Offline'}
+                  </span>
+                </div>
+                <h4 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{evt.title}</h4>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(evt.start_time)} · {evt.venue_name || 'TBD'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-      <section className="section-label">Profile Setup</section>
-      <SocialMediaConnect addToast={addToast} />
-    </>
+      {/* Recent Gigs */}
+      {recentGigs.length > 0 && (
+        <div className="glass-card" style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Your Posted Gigs</h3>
+            <Link to="/gigs" style={{ fontSize: 13, color: 'var(--blue-400)', textDecoration: 'none' }}>View All →</Link>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+            {recentGigs.map(g => (
+              <div key={g.id} style={{
+                padding: 14, borderRadius: 12, background: 'rgba(236,72,153,0.04)',
+                border: '1px solid rgba(236,72,153,0.1)',
+              }}>
+                <span style={{
+                  padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 600,
+                  background: g.gig_type === 'internship' ? 'rgba(34,197,94,0.1)' : 'rgba(139,92,246,0.1)',
+                  color: g.gig_type === 'internship' ? '#22c55e' : '#8b5cf6',
+                }}>{g.gig_type === 'internship' ? 'Internship' : 'Micro Gig'}</span>
+                <h4 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginTop: 8, marginBottom: 4 }}>{g.title}</h4>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{g.company} · {g.stipend || 'Unpaid'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Upcoming Sessions */}
+      {recentSessions.length > 0 && (
+        <div className="glass-card">
+          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 14, color: 'var(--text-primary)' }}>Upcoming Sessions</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {recentSessions.map(s => (
+              <div key={s.id} style={{
+                padding: '12px 16px', borderRadius: 12, background: 'rgba(34,197,94,0.04)',
+                border: '1px solid rgba(34,197,94,0.1)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{s.topic}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                    with {s.student?.name || 'Student'} · {s.duration} min · {formatDate(s.scheduled_at)}
+                  </div>
+                </div>
+                <span style={{
+                  padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                  background: 'rgba(34,197,94,0.1)', color: '#22c55e',
+                }}>Scheduled</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

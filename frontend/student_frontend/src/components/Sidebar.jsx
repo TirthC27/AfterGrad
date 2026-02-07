@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import './Sidebar.css'
 
 const menuItems = [
@@ -70,6 +71,7 @@ const icons = {
 export default function Sidebar({ collapsed, onToggle }) {
   const location = useLocation()
   const navigate = useNavigate()
+  const { logout } = useAuth()
   const [expanded, setExpanded] = useState({})
 
   const isActive = (path) => {
@@ -164,7 +166,7 @@ export default function Sidebar({ collapsed, onToggle }) {
         })}
       </nav>
 
-      <button className="logout-btn" title={collapsed ? 'Log out' : undefined}>
+      <button className="logout-btn" title={collapsed ? 'Log out' : undefined} onClick={logout}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
           <polyline points="16 17 21 12 16 7" />

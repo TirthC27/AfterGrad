@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { mentorship } from '../../localStore'
 import './ExploreMentors.css'
-
-const API_BASE = 'http://localhost:8001'
 
 // Professional headshot images for alumni
 const ALUMNI_PHOTOS = {
@@ -17,7 +17,7 @@ const DEPARTMENT_COLORS = {
   'Engineering': { bg: 'rgba(16, 185, 129, 0.9)', text: '#fff' },
   'Design': { bg: 'rgba(236, 72, 153, 0.9)', text: '#fff' },
   'Leadership': { bg: 'rgba(245, 158, 11, 0.9)', text: '#fff' },
-  'Data Science': { bg: 'rgba(59, 130, 246, 0.9)', text: '#fff' },
+  'Data Science': { bg: 'rgba(34, 197, 94, 0.9)', text: '#fff' },
   'default': { bg: 'rgba(134, 239, 172, 0.9)', text: '#0a2e14' },
 }
 
@@ -33,12 +33,12 @@ export default function ExploreMentors() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
   const gridRef = useRef(null)
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const STUDENT_ID = user?.id || 'student_001'
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/mentorship/offerings`)
-      .then(r => r.json())
-      .then(data => { setOfferings(data); setLoading(false) })
-      .catch(() => setLoading(false))
+    setOfferings(mentorship.getOfferings())
+    setLoading(false)
   }, [])
 
   // Parallax grid effect — cards shift slightly based on mouse position
@@ -67,19 +67,13 @@ export default function ExploreMentors() {
     setSelectedOffering(offering); setRequestNote(''); setShowModal(true)
   }
 
-  const submitRequest = async () => {
+  const submitRequest = () => {
     if (!selectedOffering) return
     setRequestingId(selectedOffering.id)
     try {
-      const res = await fetch(`${API_BASE}/api/mentorship/request`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: 'student_001', offering_id: selectedOffering.id, note: requestNote }),
-      })
-      if (res.ok) {
-        setSentRequests(prev => new Set([...prev, selectedOffering.id]))
-        setShowModal(false)
-      }
+      mentorship.createRequest({ student_id: STUDENT_ID, offering_id: selectedOffering.id, note: requestNote })
+      setSentRequests(prev => new Set([...prev, selectedOffering.id]))
+      setShowModal(false)
     } catch (e) { console.error(e) }
     finally { setRequestingId(null) }
   }
@@ -194,23 +188,32 @@ export default function ExploreMentors() {
                   src={ALUMNI_PHOTOS[selectedOffering.alumni?.id] || ''}
                   alt="" className="modal-avatar-img"
                 />
-                <div>
+                <div className="modal-info-text">
                   <strong>{selectedOffering.alumni?.name}</strong>
                   <p className="modal-topic">{selectedOffering.topic}</p>
-                  <span className="modal-duration">⏱ {durationLabel(selectedOffering.duration)}</span>
+                  <span className="modal-duration">{durationLabel(selectedOffering.duration)}</span>
                 </div>
               </div>
+
+              <div className="modal-payment-section">
+                <div className="payment-row">
+                  <span>Session Fee</span>
+                  <strong>₹{selectedOffering.fee || 0}</strong>
+                </div>
+                <div className="payment-note">Payment held in escrow until session completion</div>
+              </div>
+
               <div className="modal-field">
-                <label>Add a note <span className="optional">(optional)</span></label>
+                <label>Message</label>
                 <textarea
                   value={requestNote} onChange={e => setRequestNote(e.target.value)}
-                  placeholder="Introduce yourself and explain what you'd like guidance on..."
-                  rows={4}
+                  placeholder="Introduce yourself and what you'd like guidance on..."
+                  rows={3}
                 />
               </div>
+
               <div className="modal-notice">
-                <span className="notice-icon">🔒</span>
-                <p>This request enters a pending approval state. The alumni will review and decide whether to accept.</p>
+                Request pending alumni approval
               </div>
             </div>
             <div className="request-modal-actions">

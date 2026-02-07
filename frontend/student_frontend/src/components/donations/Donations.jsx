@@ -1,96 +1,21 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import { donations as donationsStore } from '../../localStore'
 import './Donations.css'
 
-const CAMPAIGNS = [
-  {
-    id: 'don_001',
-    title: 'Scholarship Fund for First-Gen Engineers',
-    organizer: 'CHARUSAT Alumni Association',
-    image: 'https://images.unsplash.com/photo-1523050854058-8df90110c476?w=600&h=400&fit=crop',
-    raised: 245000,
-    goal: 500000,
-    donors: 89,
-    daysLeft: 22,
-    category: 'Scholarship',
-    description: 'Help first-generation engineering students afford tuition, books, and hostel fees. Every rupee goes directly to students in need.',
-    featured: true,
-  },
-  {
-    id: 'don_002',
-    title: 'New Computer Lab — 50 Workstations',
-    organizer: 'CS Department',
-    image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&h=400&fit=crop',
-    raised: 780000,
-    goal: 1200000,
-    donors: 156,
-    daysLeft: 15,
-    category: 'Infrastructure',
-    description: 'Upgrade the computer lab with modern workstations for AI/ML research. Students currently share outdated machines — we can fix that.',
-    featured: false,
-  },
-  {
-    id: 'don_003',
-    title: 'Mental Health Support Program',
-    organizer: 'Student Welfare Committee',
-    image: 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=600&h=400&fit=crop',
-    raised: 120000,
-    goal: 300000,
-    donors: 64,
-    daysLeft: 30,
-    category: 'Wellness',
-    description: 'Fund free counseling sessions, workshops, and peer support groups. Student mental health matters — help us make professional support accessible.',
-    featured: false,
-  },
-  {
-    id: 'don_004',
-    title: 'Hackathon Travel Fund 2026',
-    organizer: 'Coding Club',
-    image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=600&h=400&fit=crop',
-    raised: 85000,
-    goal: 150000,
-    donors: 41,
-    daysLeft: 8,
-    category: 'Events',
-    description: 'Send 20 students to national hackathons (SIH, HackMIT, ETHIndia). Travel, accommodation, and registration — fully sponsored by alumni.',
-    featured: true,
-  },
-  {
-    id: 'don_005',
-    title: 'Open Source Library for Campus',
-    organizer: 'Library Committee',
-    image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=600&h=400&fit=crop',
-    raised: 55000,
-    goal: 200000,
-    donors: 33,
-    daysLeft: 45,
-    category: 'Education',
-    description: 'Stock the campus library with the latest tech books, ACM digital library access, and O\'Reilly Learning subscriptions for all students.',
-    featured: false,
-  },
-  {
-    id: 'don_006',
-    title: 'Women in Tech Mentorship Grant',
-    organizer: 'WIT Chapter',
-    image: 'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=600&h=400&fit=crop',
-    raised: 190000,
-    goal: 250000,
-    donors: 72,
-    daysLeft: 12,
-    category: 'Scholarship',
-    description: 'Fund mentorship pairing, conference tickets, and project grants for women pursuing careers in tech. Closing the gap, one grant at a time.',
-    featured: true,
-  },
-]
-
-const CATEGORIES = ['All', 'Scholarship', 'Infrastructure', 'Wellness', 'Events', 'Education']
-
 export default function Donations() {
+  const [campaigns, setCampaigns] = useState([])
   const [filter, setFilter] = useState('All')
   const [donatingId, setDonatingId] = useState(null)
   const [amount, setAmount] = useState('')
   const cardRefs = useRef([])
+  const { user } = useAuth()
 
-  const filtered = filter === 'All' ? CAMPAIGNS : CAMPAIGNS.filter(c => c.category === filter)
+  const reload = () => setCampaigns(donationsStore.getCampaigns())
+  useEffect(() => { reload() }, [])
+
+  const categories = ['All', ...new Set(campaigns.map(c => c.category))]
+  const filtered = filter === 'All' ? campaigns : campaigns.filter(c => c.category === filter)
 
   const formatCurrency = (n) => `₹${(n / 1000).toFixed(0)}K`
   const progress = (raised, goal) => Math.min((raised / goal) * 100, 100)
@@ -117,13 +42,13 @@ export default function Donations() {
         </div>
         <div className="donations-total-card">
           <span className="dt-label">Total Raised</span>
-          <span className="dt-value">₹14.75L</span>
-          <span className="dt-sub">from 455 donors</span>
+          <span className="dt-value">{formatCurrency(campaigns.reduce((s, c) => s + (c.raised || 0), 0))}</span>
+          <span className="dt-sub">from {campaigns.reduce((s, c) => s + (c.donors || 0), 0)} donors</span>
         </div>
       </div>
 
       <div className="donations-filters">
-        {CATEGORIES.map(c => (
+        {categories.map(c => (
           <button key={c} className={`df-chip ${filter === c ? 'active' : ''}`} onClick={() => setFilter(c)}>
             {c}
           </button>
@@ -134,7 +59,7 @@ export default function Donations() {
         {filtered.map((camp, idx) => (
           <div
             key={camp.id}
-            className={`donation-card ${camp.featured ? 'featured' : ''}`}
+            className={`donation-card ${progress(camp.raised, camp.goal) >= 80 ? 'featured' : ''}`}
             ref={el => (cardRefs.current[idx] = el)}
             style={{ animationDelay: `${idx * 100}ms` }}
             onMouseMove={e => handleMouseMove(e, idx)}
@@ -142,16 +67,15 @@ export default function Donations() {
           >
             {/* Image */}
             <div className="donation-img-wrap">
-              <img src={camp.image} alt={camp.title} loading="lazy" />
+              <div style={{ fontSize: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'linear-gradient(135deg,#1a1a2e,#16213e)' }}>{camp.image || '💰'}</div>
               <div className="donation-category-badge">{camp.category}</div>
-              {camp.featured && <div className="donation-featured-badge">⭐ Featured</div>}
-              {camp.daysLeft <= 10 && <div className="donation-ending-badge">🔥 Ending Soon</div>}
+              {progress(camp.raised, camp.goal) >= 80 && <div className="donation-featured-badge">🔥 Almost There</div>}
             </div>
 
             {/* Body */}
             <div className="donation-body">
               <h3 className="donation-title">{camp.title}</h3>
-              <p className="donation-org">by {camp.organizer}</p>
+              <p className="donation-org">Campaign</p>
               <p className="donation-desc">{camp.description}</p>
 
               {/* Progress bar */}
@@ -170,7 +94,7 @@ export default function Donations() {
               {/* Meta row */}
               <div className="donation-meta">
                 <span>👥 {camp.donors} donors</span>
-                <span>⏳ {camp.daysLeft} days left</span>
+                <span>📅 {new Date(camp.created_at).toLocaleDateString()}</span>
               </div>
 
               {/* Donate section */}
@@ -182,7 +106,14 @@ export default function Donations() {
                     className="donate-input"
                     onClick={e => e.stopPropagation()}
                   />
-                  <button className="donate-confirm-btn" onClick={e => { e.stopPropagation(); alert(`Donated ₹${amount} to ${camp.title}!`); setDonatingId(null); setAmount('') }}>
+                  <button className="donate-confirm-btn" onClick={e => {
+                    e.stopPropagation()
+                    if (!amount || Number(amount) <= 0) return
+                    donationsStore.donate({ campaign_id: camp.id, donor_id: user?.id || 'student_001', amount: Number(amount), donor_name: user?.full_name || 'Student' })
+                    reload()
+                    setDonatingId(null)
+                    setAmount('')
+                  }}>
                     Confirm
                   </button>
                 </div>

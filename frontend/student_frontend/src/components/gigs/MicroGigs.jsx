@@ -1,111 +1,32 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import { gigs as gigsStore } from '../../localStore'
 import './MicroGigs.css'
 
-const GIGS = [
-  {
-    id: 'gig_001',
-    title: 'Frontend Intern — React Dashboard',
-    company: 'Google',
-    logo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/google.svg',
-    logoFallback: 'G',
-    type: 'Internship',
-    duration: '3 months',
-    stipend: '₹40,000/mo',
-    location: 'Bangalore (Hybrid)',
-    skills: ['React', 'TypeScript', 'Tailwind CSS'],
-    posted: '2 days ago',
-    applicants: 42,
-    description: 'Build internal dashboards for the Google Cloud Platform team. Work with senior engineers on production-grade React applications.',
-    urgent: true,
-  },
-  {
-    id: 'gig_002',
-    title: 'Backend Engineering Intern',
-    company: 'Amazon',
-    logo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/amazon.svg',
-    logoFallback: 'A',
-    type: 'Internship',
-    duration: '6 months',
-    stipend: '₹50,000/mo',
-    location: 'Hyderabad (On-site)',
-    skills: ['Python', 'AWS', 'DynamoDB', 'FastAPI'],
-    posted: '5 days ago',
-    applicants: 87,
-    description: 'Join the AWS Lambda team to build scalable microservices. Work on distributed systems handling millions of requests per second.',
-    urgent: false,
-  },
-  {
-    id: 'gig_003',
-    title: 'UI/UX Design Intern',
-    company: 'Microsoft',
-    logo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/microsoft.svg',
-    logoFallback: 'M',
-    type: 'Internship',
-    duration: '4 months',
-    stipend: '₹35,000/mo',
-    location: 'Remote',
-    skills: ['Figma', 'Design Systems', 'Prototyping'],
-    posted: '1 day ago',
-    applicants: 31,
-    description: 'Design user interfaces for Microsoft Teams features. Collaborate with PMs and engineers to ship polished experiences to millions.',
-    urgent: true,
-  },
-  {
-    id: 'gig_004',
-    title: 'Data Science Research Intern',
-    company: 'Flipkart',
-    logo: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/flipkart.svg',
-    logoFallback: 'F',
-    type: 'Internship',
-    duration: '3 months',
-    stipend: '₹30,000/mo',
-    location: 'Bangalore (On-site)',
-    skills: ['Python', 'ML', 'Pandas', 'TensorFlow'],
-    posted: '1 week ago',
-    applicants: 65,
-    description: 'Build recommendation models for product discovery. Use large-scale datasets to improve search relevance and personalization.',
-    urgent: false,
-  },
-  {
-    id: 'gig_005',
-    title: 'DevOps Intern — CI/CD Pipeline',
-    company: 'Razorpay',
-    logo: '',
-    logoFallback: 'R',
-    type: 'Micro Gig',
-    duration: '6 weeks',
-    stipend: '₹25,000/mo',
-    location: 'Remote',
-    skills: ['Docker', 'GitHub Actions', 'Kubernetes'],
-    posted: '3 days ago',
-    applicants: 18,
-    description: 'Set up automated CI/CD pipelines for microservices. Containerize applications and deploy to Kubernetes clusters.',
-    urgent: false,
-  },
-  {
-    id: 'gig_006',
-    title: 'Mobile Dev Intern — Flutter',
-    company: 'CRED',
-    logo: '',
-    logoFallback: 'C',
-    type: 'Internship',
-    duration: '4 months',
-    stipend: '₹45,000/mo',
-    location: 'Bangalore (Hybrid)',
-    skills: ['Flutter', 'Dart', 'Firebase', 'REST APIs'],
-    posted: '4 days ago',
-    applicants: 53,
-    description: 'Build premium mobile experiences for the CRED app. Work on performance optimization and new feature development.',
-    urgent: true,
-  },
-]
-
 export default function MicroGigs() {
+  const [gigsList, setGigsList] = useState([])
   const [selectedGig, setSelectedGig] = useState(null)
   const [typeFilter, setTypeFilter] = useState('all')
+  const [applyingId, setApplyingId] = useState(null)
+  const [appliedSet, setAppliedSet] = useState(new Set())
   const cardRefs = useRef([])
+  const { user } = useAuth()
+  const STUDENT_ID = user?.id || 'student_001'
 
-  const filtered = typeFilter === 'all' ? GIGS : GIGS.filter(g => g.type === typeFilter)
+  useEffect(() => {
+    setGigsList(gigsStore.getAll())
+    const apps = gigsStore.getStudentApplications(STUDENT_ID)
+    setAppliedSet(new Set(apps.map(a => a.gig_id)))
+  }, [])
+
+  const filtered = typeFilter === 'all' ? gigsList : gigsList.filter(g => g.gig_type === typeFilter)
+
+  const handleApply = (gigId) => {
+    setApplyingId(gigId)
+    gigsStore.apply({ gig_id: gigId, student_id: STUDENT_ID, note: 'I am interested!' })
+    setAppliedSet(prev => new Set([...prev, gigId]))
+    setApplyingId(null)
+  }
 
   const handleMouseMove = (e, idx) => {
     const card = cardRefs.current[idx]
@@ -130,9 +51,9 @@ export default function MicroGigs() {
       </div>
 
       <div className="gigs-filters">
-        {['all', 'Internship', 'Micro Gig'].map(t => (
+        {['all', 'project', 'internship', 'micro'].map(t => (
           <button key={t} className={`gf-chip ${typeFilter === t ? 'active' : ''}`} onClick={() => setTypeFilter(t)}>
-            {t === 'all' ? '🔥 All' : t === 'Internship' ? '🎓 Internships' : '⚡ Micro Gigs'}
+            {t === 'all' ? '🔥 All' : t === 'internship' ? '🎓 Internships' : t === 'project' ? '📂 Projects' : '⚡ Micro Gigs'}
           </button>
         ))}
       </div>
@@ -151,41 +72,44 @@ export default function MicroGigs() {
             {/* Glow effect */}
             <div className="gig-glow" />
 
-            {gig.urgent && <div className="gig-urgent-badge">🔥 Urgent</div>}
+            {gig.status === 'open' && <div className="gig-urgent-badge">🟢 Open</div>}
 
             <div className="gig-card-top">
               <div className="gig-company-logo">
-                {gig.logoFallback}
+                {(gig.company || 'G')[0]}
               </div>
               <div className="gig-top-info">
-                <span className="gig-company">{gig.company}</span>
-                <span className="gig-type-tag">{gig.type}</span>
+                <span className="gig-company">{gig.company || 'Company'}</span>
+                <span className="gig-type-tag">{gig.gig_type}</span>
               </div>
             </div>
 
             <h3 className="gig-title">{gig.title}</h3>
 
             <div className="gig-meta-row">
-              <span className="gig-meta">📍 {gig.location}</span>
               <span className="gig-meta">⏱ {gig.duration}</span>
+              <span className="gig-meta">📅 {new Date(gig.created_at).toLocaleDateString()}</span>
             </div>
 
             <div className="gig-stipend-row">
-              <span className="gig-stipend">{gig.stipend}</span>
-              <span className="gig-posted">{gig.posted}</span>
+              <span className="gig-stipend">₹{(gig.stipend || 0).toLocaleString()}</span>
+              <span className="gig-posted">{gig.status}</span>
             </div>
 
             <div className="gig-skills">
-              {gig.skills.map(s => <span key={s} className="gig-skill">{s}</span>)}
+              {(gig.skills_required || []).map(s => <span key={s} className="gig-skill">{s}</span>)}
             </div>
 
             {selectedGig === gig.id && (
               <div className="gig-expanded-content">
                 <p className="gig-description">{gig.description}</p>
-                <div className="gig-applicants">👥 {gig.applicants} applicants</div>
-                <button className="gig-apply-btn" onClick={e => { e.stopPropagation(); alert('Application sent!') }}>
-                  Apply Now →
-                </button>
+                {appliedSet.has(gig.id) ? (
+                  <button className="gig-apply-btn" style={{ opacity: 0.6 }} disabled>✅ Applied</button>
+                ) : (
+                  <button className="gig-apply-btn" disabled={applyingId === gig.id} onClick={e => { e.stopPropagation(); handleApply(gig.id) }}>
+                    {applyingId === gig.id ? 'Applying…' : 'Apply Now →'}
+                  </button>
+                )}
               </div>
             )}
           </div>

@@ -1,199 +1,261 @@
 -- =============================================
--- AfterGrad - Alumni Platform (Hackathon Edition)
--- Supabase Database Schema
+-- AfterGrad - Hackathon Database Schema
+-- Supabase (PostgreSQL) — Minimal friction
 -- =============================================
 
--- 1️⃣ Users Table (Students + Alumni)
+create extension if not exists "pgcrypto";
+
 -- =============================================
-create table users (
-  id uuid primary key default gen_random_uuid(),
-  role text check (role in ('student','alumni')),
+-- 1. PROFILES (Students + Alumni)
+--    ID = Clerk user_id (string) or mock ID
+-- =============================================
+create table if not exists profiles (
+  id text primary key,
+  role text check (role in ('student','alumni')) not null,
+  email text unique,
+  password text,
   name text,
-  email text,
+  avatar_url text,
+  phone text,
+
+  -- Student fields
   college text,
   graduation_year int,
+  student_verified boolean default false,
+  sheerid_verified_at timestamp,
+
+  -- Alumni fields
   company text,
   job_title text,
-  skills jsonb,
-  career_goal text,
+  passout_year int,
+
+  -- Resume extraction (shared)
+  skills text[] default '{}',
+  experience_summary text,
+  resume_url text,
+  resume_parsed_at timestamp,
+
+  -- Onboarding
+  onboarding_completed boolean default false,
+  bio text,
+  interests text[] default '{}',
+  linkedin_url text,
+  github_url text,
   location text,
-  created_at timestamp default now()
-);
 
-
--- 2️⃣ Alumni Lineage (Simple & Visual)
--- =============================================
-create table lineage (
-  id uuid primary key default gen_random_uuid(),
-  student_id uuid,
-  alumni_id uuid,
-  description text
-);
-
--- 3️⃣ Career Time Machine
--- =============================================
-create table career_paths (
-  id uuid primary key default gen_random_uuid(),
-  student_id uuid,
-  target_role text,
-  timeline jsonb
-);
-
--- 4️⃣ Referral Slots (Lightweight)
--- =============================================
-create table referrals (
-  id uuid primary key default gen_random_uuid(),
-  alumni_id uuid,
-  company text,
-  role text,
-  slots int,
-  applied_students jsonb
-);
-
--- 5️⃣ Mentorship
--- =============================================
-create table mentorships (
-  id uuid primary key default gen_random_uuid(),
-  mentor_id uuid,
-  student_id uuid,
-  status text
-);
-
--- 6️⃣ Events
--- =============================================
-create table events (
-  id uuid primary key default gen_random_uuid(),
-  title text,
-  description text,
-  location text,
-  date timestamp,
-  created_by uuid
-);
-
--- 7️⃣ Event Registrations
--- =============================================
-create table event_registrations (
-  event_id uuid,
-  user_id uuid
-);
-
--- 8️⃣ Startup Space (Demo-Friendly)
--- =============================================
-create table startups (
-  id uuid primary key default gen_random_uuid(),
-  name text,
-  description text,
-  founder_id uuid,
-  interested_alumni jsonb
-);
-
--- 9️⃣ AI Reminders (Fake it till you make it 🤖)
--- =============================================
-create table reminders (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid,
-  message text,
-  scheduled_at timestamp
+  created_at timestamp default now(),
+  updated_at timestamp default now()
 );
 
 -- =============================================
--- LINKEDIN IMPORT FEATURE TABLES
+-- 2. EVENTS
 -- =============================================
-
--- 🔗 User Skills (normalized, source-tracked)
--- =============================================
-create table user_skills (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id) on delete cascade,
-  skill_name text not null,
-  source text check (source in ('linkedin_api','linkedin_scrape','manual')) default 'manual',
-  visible boolean default true,
-  created_at timestamp default now()
-);
-
--- 📜 Career History (per-user work experience)
--- =============================================
-create table career_history (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id) on delete cascade,
-  role text,
-  company text,
-  start_year int,
-  end_year int,
-  created_at timestamp default now()
-);
-
--- 📋 LinkedIn Import Logs (audit trail)
--- =============================================
-create table linkedin_import_logs (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references users(id) on delete cascade,
-  source text check (source in ('linkedin_api','linkedin_scrape')),
-  raw_payload jsonb,
-  parsed_payload jsonb,
-  imported_at timestamp default now()
-);
-
--- Extend users table with LinkedIn-specific columns
--- =============================================
-alter table users add column if not exists linkedin_url text;
-alter table users add column if not exists industry text;
-alter table users add column if not exists experience_summary text;
-alter table users add column if not exists linkedin_imported_at timestamp;
-
--- =============================================
--- EVENT LISTING & CREATION FEATURE TABLES
--- =============================================
-
--- Replace old events table with proper schema
--- DROP TABLE IF EXISTS events CASCADE;
--- DROP TABLE IF EXISTS event_registrations CASCADE;
-
--- 🎫 Events (v2 — location-protected)
--- =============================================
-create table if not exists events_v2 (
-  id uuid primary key default gen_random_uuid(),
+create table if not exists events (
+  id text primary key default 'evt_' || substr(gen_random_uuid()::text, 1, 8),
   title text not null,
   description text,
   event_type text check (event_type in ('online','offline')) not null,
+  venue_name text,
   start_time timestamp not null,
   end_time timestamp,
   geo_lat float,
   geo_lng float,
   allow_requests boolean default true,
-  created_by uuid references users(id) on delete cascade,
+  created_by text references profiles(id) on delete cascade,
   created_at timestamp default now()
 );
 
--- 👥 Event Participants (host / alumni / student)
+-- =============================================
+-- 3. EVENT PARTICIPANTS
 -- =============================================
 create table if not exists event_participants (
-  id uuid primary key default gen_random_uuid(),
-  event_id uuid references events_v2(id) on delete cascade,
-  user_id uuid references users(id) on delete cascade,
-  role text check (role in ('host','alumni','student')) not null,
-  joined_at timestamp default now()
+  id text primary key default 'ep_' || substr(gen_random_uuid()::text, 1, 8),
+  event_id text references events(id) on delete cascade,
+  user_id text references profiles(id) on delete cascade,
+  role text check (role in ('host','judge','mentor','speaker')) not null,
+  joined_at timestamp default now(),
+  unique(event_id, user_id)
 );
 
--- 📩 Event Requests (student → alumni, event-scoped)
+-- =============================================
+-- 4. EVENT REQUESTS
 -- =============================================
 create table if not exists event_requests (
-  id uuid primary key default gen_random_uuid(),
-  event_id uuid references events_v2(id) on delete cascade,
-  student_id uuid references users(id) on delete cascade,
-  alumni_id uuid references users(id) on delete cascade,
+  id text primary key default 'ereq_' || substr(gen_random_uuid()::text, 1, 8),
+  event_id text references events(id) on delete cascade,
+  student_id text references profiles(id) on delete cascade,
+  alumni_id text references profiles(id) on delete cascade,
   message text,
-  status text check (status in ('pending','accepted','rejected')) default 'pending',
+  status text check (status in ('pending','accepted','rejected','revoked')) default 'pending',
+  created_at timestamp default now(),
+  responded_at timestamp,
+  unique(event_id, student_id, alumni_id)
+);
+
+-- =============================================
+-- 5. EVENT LOCATION ACCESS
+-- =============================================
+create table if not exists event_location_access (
+  id text primary key default 'eloc_' || substr(gen_random_uuid()::text, 1, 8),
+  event_id text references events(id) on delete cascade,
+  student_id text references profiles(id) on delete cascade,
+  alumni_id text references profiles(id) on delete cascade,
+  access_granted boolean default false,
+  granted_at timestamp,
+  revoked_at timestamp,
+  unique(event_id, student_id, alumni_id)
+);
+
+-- =============================================
+-- 6. MENTORSHIP OFFERINGS
+-- =============================================
+create table if not exists mentorship_offerings (
+  id text primary key default 'offer_' || substr(gen_random_uuid()::text, 1, 8),
+  alumni_id text references profiles(id) on delete cascade,
+  topic text not null,
+  description text,
+  duration int check (duration in (15, 30, 60)) not null,
+  price float default 0,
+  active boolean default true,
+  tags text[] default '{}',
   created_at timestamp default now()
 );
 
--- 🔒 Event Location Access (per student+alumni+event)
 -- =============================================
-create table if not exists event_location_access (
-  id uuid primary key default gen_random_uuid(),
-  event_id uuid references events_v2(id) on delete cascade,
-  student_id uuid references users(id) on delete cascade,
-  alumni_id uuid references users(id) on delete cascade,
-  access_granted boolean default false,
-  granted_at timestamp
+-- 7. MENTORSHIP REQUESTS
+-- =============================================
+create table if not exists mentorship_requests (
+  id text primary key default 'mreq_' || substr(gen_random_uuid()::text, 1, 8),
+  offering_id text references mentorship_offerings(id) on delete cascade,
+  student_id text references profiles(id) on delete cascade,
+  alumni_id text references profiles(id) on delete cascade,
+  topic text,
+  duration int,
+  note text,
+  status text check (status in ('pending','accepted','rejected','cancelled')) default 'pending',
+  created_at timestamp default now(),
+  responded_at timestamp
 );
+
+-- =============================================
+-- 8. MENTORSHIP SESSIONS
+-- =============================================
+create table if not exists mentorship_sessions (
+  id text primary key default 'msess_' || substr(gen_random_uuid()::text, 1, 8),
+  request_id text references mentorship_requests(id) on delete cascade,
+  offering_id text references mentorship_offerings(id),
+  student_id text references profiles(id) on delete cascade,
+  alumni_id text references profiles(id) on delete cascade,
+  topic text,
+  duration int,
+  status text check (status in ('scheduled','awaiting_completion','completed')) default 'scheduled',
+  scheduled_at timestamp,
+  alumni_completed boolean default false,
+  student_completed boolean default false,
+  completed_at timestamp,
+  created_at timestamp default now()
+);
+
+-- =============================================
+-- 9. DONATION CAMPAIGNS
+-- =============================================
+create table if not exists donation_campaigns (
+  id text primary key default 'camp_' || substr(gen_random_uuid()::text, 1, 8),
+  title text not null,
+  description text,
+  category text check (category in ('Scholarship','Infrastructure','Wellness','Events','Education')) not null,
+  goal_amount float not null,
+  raised_amount float default 0,
+  created_by text references profiles(id),
+  image_url text,
+  created_at timestamp default now()
+);
+
+create table if not exists donations (
+  id text primary key default 'don_' || substr(gen_random_uuid()::text, 1, 8),
+  campaign_id text references donation_campaigns(id) on delete cascade,
+  donor_id text references profiles(id),
+  amount float not null,
+  created_at timestamp default now()
+);
+
+-- =============================================
+-- 10. GIGS / INTERNSHIPS
+-- =============================================
+create table if not exists gigs (
+  id text primary key default 'gig_' || substr(gen_random_uuid()::text, 1, 8),
+  title text not null,
+  company text,
+  description text,
+  gig_type text check (gig_type in ('internship','micro_gig')) not null,
+  stipend text,
+  duration text,
+  skills_required text[] default '{}',
+  posted_by text references profiles(id),
+  created_at timestamp default now()
+);
+
+create table if not exists gig_applications (
+  id text primary key default 'gapp_' || substr(gen_random_uuid()::text, 1, 8),
+  gig_id text references gigs(id) on delete cascade,
+  student_id text references profiles(id) on delete cascade,
+  status text check (status in ('applied','shortlisted','rejected')) default 'applied',
+  created_at timestamp default now(),
+  unique(gig_id, student_id)
+);
+
+-- =============================================
+-- 11. LINEAGE (student-alumni connections)
+-- =============================================
+create table if not exists lineage (
+  id text primary key default 'lin_' || substr(gen_random_uuid()::text, 1, 8),
+  student_id text references profiles(id) on delete cascade,
+  alumni_id text references profiles(id) on delete cascade,
+  connection_type text check (connection_type in ('mentorship','referral','guidance')) default 'guidance',
+  description text,
+  created_at timestamp default now()
+);
+
+-- =============================================
+-- 12. ALUMNI INVITATIONS (students invite alumni as mentor/judge)
+-- =============================================
+create table if not exists alumni_invitations (
+  id text primary key default 'inv_' || substr(gen_random_uuid()::text, 1, 8),
+  event_id text references events(id) on delete cascade,
+  student_id text references profiles(id) on delete cascade,
+  alumni_id text references profiles(id) on delete cascade,
+  role text check (role in ('mentor','judge','speaker','guest')) not null,
+  message text,
+  status text check (status in ('pending','accepted','declined')) default 'pending',
+  created_at timestamp default now(),
+  responded_at timestamp,
+  unique(event_id, student_id, alumni_id)
+);
+
+-- =============================================
+-- 13. ONBOARDING ANSWERS (MCQ answers during onboarding)
+-- =============================================
+create table if not exists onboarding_answers (
+  id text primary key default 'oa_' || substr(gen_random_uuid()::text, 1, 8),
+  user_id text references profiles(id) on delete cascade,
+  question_id text not null,
+  question_text text not null,
+  selected_option text not null,
+  created_at timestamp default now()
+);
+
+-- =============================================
+-- INDEXES
+-- =============================================
+create index if not exists idx_events_created_by on events(created_by);
+create index if not exists idx_event_requests_student on event_requests(student_id);
+create index if not exists idx_event_requests_alumni on event_requests(alumni_id);
+create index if not exists idx_mentorship_offerings_alumni on mentorship_offerings(alumni_id);
+create index if not exists idx_mentorship_requests_student on mentorship_requests(student_id);
+create index if not exists idx_mentorship_requests_alumni on mentorship_requests(alumni_id);
+create index if not exists idx_mentorship_sessions_student on mentorship_sessions(student_id);
+create index if not exists idx_mentorship_sessions_alumni on mentorship_sessions(alumni_id);
+create index if not exists idx_profiles_role on profiles(role);
+create index if not exists idx_alumni_invitations_alumni on alumni_invitations(alumni_id);
+create index if not exists idx_alumni_invitations_student on alumni_invitations(student_id);
+create index if not exists idx_onboarding_answers_user on onboarding_answers(user_id);

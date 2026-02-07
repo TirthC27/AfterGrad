@@ -1,107 +1,93 @@
 -- =============================================
--- AfterGrad - Demo Seed Data
--- Pre-populated for hackathon demo 🔥
+-- AfterGrad - Seed Data (Hackathon Demo)
 -- =============================================
 
--- 1️⃣ USERS (5 Students + 5 Alumni)
--- =============================================
+-- PROFILES: Students
+INSERT INTO profiles (id, role, email, password, name, college, graduation_year, student_verified, skills, bio, location, onboarding_completed) VALUES
+('student_001', 'student', 'tirth@college.edu', 'student123', 'Tirth Chudasama', 'IIT Delhi', 2026, true, ARRAY['React','Python','SQL','JavaScript','Node.js'], 'Final-year CS student passionate about product development.', 'Delhi, India', true),
+('student_002', 'student', 'aisha@college.edu', 'student123', 'Aisha Khan', 'IIT Bombay', 2026, true, ARRAY['Java','Spring Boot','AWS','Docker'], 'Backend-focused engineer exploring distributed systems.', 'Mumbai, India', true);
 
--- Students
-INSERT INTO users (id, role, name, email, college, graduation_year, skills, career_goal, location) VALUES
-('11111111-1111-1111-1111-111111111111', 'student', 'Priya Sharma', 'priya@college.edu', 'IIT Delhi', 2026, '["React", "Python", "SQL"]', 'Product Manager at Google', 'Delhi, India'),
-('22222222-2222-2222-2222-222222222222', 'student', 'Rahul Verma', 'rahul@college.edu', 'IIT Bombay', 2026, '["Java", "Spring Boot", "AWS"]', 'Software Engineer at Amazon', 'Mumbai, India'),
-('33333333-3333-3333-3333-333333333333', 'student', 'Ananya Singh', 'ananya@college.edu', 'BITS Pilani', 2025, '["Python", "Machine Learning", "TensorFlow"]', 'ML Engineer', 'Bangalore, India'),
-('44444444-4444-4444-4444-444444444444', 'student', 'Karan Patel', 'karan@college.edu', 'NIT Trichy', 2026, '["JavaScript", "Node.js", "MongoDB"]', 'Full Stack Developer', 'Chennai, India'),
-('55555555-5555-5555-5555-555555555555', 'student', 'Sneha Reddy', 'sneha@college.edu', 'IIT Madras', 2025, '["UI/UX", "Figma", "React"]', 'Product Designer at Airbnb', 'Hyderabad, India');
+-- PROFILES: Alumni
+INSERT INTO profiles (id, role, email, password, name, company, job_title, passout_year, skills, bio, location, onboarding_completed) VALUES
+('alumni_001', 'alumni', 'priya@google.com', 'alumni123', 'Priya Sharma', 'Google', 'Senior PM', 2020, ARRAY['Product Strategy','SQL','Leadership','Agile'], 'Senior PM at Google. Happy to mentor aspiring PMs.', 'Bangalore, India', true),
+('alumni_002', 'alumni', 'rahul@amazon.com', 'alumni123', 'Rahul Verma', 'Amazon', 'Senior SDE', 2019, ARRAY['Java','Distributed Systems','AWS','System Design'], 'Building large-scale systems at Amazon.', 'Seattle, USA', true),
+('alumni_003', 'alumni', 'sneha@microsoft.com', 'alumni123', 'Sneha Patel', 'Microsoft', 'Staff Engineer', 2018, ARRAY['C#','Azure','Open Source','Python'], 'Staff engineer working on Azure DevOps.', 'Hyderabad, India', true),
+('alumni_004', 'alumni', 'arjun@flipkart.com', 'alumni123', 'Arjun Mehta', 'Flipkart', 'Engineering Lead', 2019, ARRAY['Python','Microservices','Kafka','Leadership'], 'Engineering lead; bootstrapped a startup before joining Flipkart.', 'Bangalore, India', true);
 
--- Alumni
-INSERT INTO users (id, role, name, email, college, graduation_year, company, current_role, skills, location) VALUES
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'alumni', 'Arjun Mehta', 'arjun@google.com', 'IIT Delhi', 2020, 'Google', 'Senior Product Manager', '["Product Strategy", "SQL", "Leadership"]', 'Bangalore, India'),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'alumni', 'Neha Gupta', 'neha@microsoft.com', 'IIT Bombay', 2019, 'Microsoft', 'Software Engineer III', '["C#", "Azure", "System Design"]', 'Hyderabad, India'),
-('cccccccc-cccc-cccc-cccc-cccccccccccc', 'alumni', 'Vikram Joshi', 'vikram@amazon.com', 'BITS Pilani', 2018, 'Amazon', 'Senior SDE', '["Java", "Distributed Systems", "AWS"]', 'Seattle, USA'),
-('dddddddd-dddd-dddd-dddd-dddddddddddd', 'alumni', 'Pooja Iyer', 'pooja@netflix.com', 'IIT Madras', 2017, 'Netflix', 'Staff Engineer', '["Python", "Microservices", "Kafka"]', 'Los Angeles, USA'),
-('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'alumni', 'Siddharth Kumar', 'sid@meta.com', 'NIT Trichy', 2019, 'Meta', 'Product Designer', '["UI/UX", "Prototyping", "User Research"]', 'San Francisco, USA');
+-- EVENTS
+INSERT INTO events (id, title, description, event_type, venue_name, start_time, end_time, geo_lat, geo_lng, allow_requests, created_by) VALUES
+('evt_001', 'Tech Career Paths in 2026', 'Interactive session with Google & Amazon alumni discussing emerging career paths in AI, Cloud, and Product Management.', 'offline', 'IIT Bombay, Powai', '2026-02-15 14:00:00', '2026-02-15 17:00:00', 19.0760, 72.8777, true, 'alumni_001'),
+('evt_002', 'Resume & Portfolio Review Night', 'Get your resume reviewed by hiring managers from Microsoft and Flipkart.', 'online', 'Zoom Meeting', '2026-02-20 19:00:00', '2026-02-20 21:00:00', null, null, true, 'alumni_003'),
+('evt_003', 'Startup Founders Meetup', 'Casual offline meetup for students interested in entrepreneurship.', 'offline', 'WeWork Galaxy, Bangalore', '2026-03-01 10:00:00', '2026-03-01 13:00:00', 12.9716, 77.5946, true, 'alumni_004'),
+('evt_004', 'System Design Deep Dive', 'Hands-on workshop covering distributed systems and real-world system design interviews.', 'online', 'Google Meet', '2026-03-10 18:00:00', '2026-03-10 20:30:00', null, null, true, 'alumni_002'),
+('evt_005', 'Women in Tech Networking Brunch', 'Exclusive offline brunch for women in tech featuring alumni mentors.', 'offline', 'India Habitat Centre, Delhi', '2026-03-08 11:00:00', '2026-03-08 14:00:00', 28.6139, 77.2090, true, 'alumni_001');
 
--- 2️⃣ ALUMNI LINEAGE
--- =============================================
-INSERT INTO lineage (student_id, alumni_id, description) VALUES
-('11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Both from IIT Delhi, Product track'),
-('22222222-2222-2222-2222-222222222222', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Both from IIT Bombay, Backend engineering'),
-('33333333-3333-3333-3333-333333333333', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'ML to Engineering transition path'),
-('55555555-5555-5555-5555-555555555555', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Design track, similar college background');
+-- EVENT PARTICIPANTS
+INSERT INTO event_participants (event_id, user_id, role) VALUES
+('evt_001', 'alumni_001', 'judge'),
+('evt_001', 'alumni_002', 'mentor'),
+('evt_002', 'alumni_003', 'mentor'),
+('evt_002', 'alumni_004', 'judge'),
+('evt_003', 'alumni_004', 'speaker'),
+('evt_003', 'alumni_001', 'mentor'),
+('evt_004', 'alumni_002', 'speaker'),
+('evt_004', 'alumni_003', 'judge'),
+('evt_005', 'alumni_001', 'mentor'),
+('evt_005', 'alumni_003', 'speaker');
 
--- 3️⃣ CAREER PATHS (Time Machine)
--- =============================================
-INSERT INTO career_paths (student_id, target_role, timeline) VALUES
-('11111111-1111-1111-1111-111111111111', 'Product Manager at Google', 
- '[
-   {"year":1,"skill":"SQL & Data Analysis"},
-   {"year":2,"skill":"Product Thinking & Stakeholder Management"},
-   {"year":3,"role":"Associate Product Manager"},
-   {"year":5,"role":"Senior Product Manager"}
- ]'::jsonb),
-('22222222-2222-2222-2222-222222222222', 'Software Engineer at Amazon',
- '[
-   {"year":1,"skill":"Data Structures & Algorithms"},
-   {"year":2,"skill":"System Design & AWS"},
-   {"year":3,"role":"SDE-1"},
-   {"year":5,"role":"SDE-2"}
- ]'::jsonb);
+-- MENTORSHIP OFFERINGS
+INSERT INTO mentorship_offerings (id, alumni_id, topic, description, duration, price, active, tags) VALUES
+('offer_001', 'alumni_001', 'Breaking into Product Management', '1-on-1 guidance on transitioning from engineering to PM roles at top tech companies.', 30, 0, true, ARRAY['Product Management','Career Switch','Interview Prep']),
+('offer_002', 'alumni_002', 'System Design Interview Mastery', 'Deep-dive into distributed systems concepts and real-world architecture patterns.', 60, 0, true, ARRAY['System Design','Backend','FAANG']),
+('offer_003', 'alumni_003', 'Open Source Contributions for Career Growth', 'How to leverage open-source work to build credibility and get noticed by recruiters.', 30, 0, true, ARRAY['Open Source','Portfolio','Career Growth']),
+('offer_004', 'alumni_004', 'Startup Fundamentals — From Idea to MVP', 'Practical walkthrough of validating ideas, building MVPs, and pitching to investors.', 60, 0, true, ARRAY['Startup','Entrepreneurship','MVP']),
+('offer_005', 'alumni_001', 'Resume & LinkedIn Optimization', 'Actionable feedback on your resume and LinkedIn profile.', 15, 0, true, ARRAY['Resume','LinkedIn','Job Search']);
 
--- 4️⃣ REFERRALS
--- =============================================
-INSERT INTO referrals (alumni_id, company, role, slots, applied_students) VALUES
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Google', 'APM Intern', 2, 
- '[
-   {"student_id":"11111111-1111-1111-1111-111111111111","status":"pending"}
- ]'::jsonb),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Microsoft', 'SDE Intern', 3, '[]'::jsonb),
-('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Amazon', 'SDE Full-time', 1, 
- '[
-   {"student_id":"22222222-2222-2222-2222-222222222222","status":"approved"}
- ]'::jsonb);
+-- MENTORSHIP REQUESTS
+INSERT INTO mentorship_requests (id, offering_id, student_id, alumni_id, topic, duration, note, status, created_at, responded_at) VALUES
+('mreq_001', 'offer_001', 'student_001', 'alumni_001', 'Breaking into Product Management', 30, 'Exploring PM roles. Would love guidance on positioning my engineering background.', 'accepted', '2026-01-25 16:00:00', '2026-01-26 10:00:00'),
+('mreq_002', 'offer_002', 'student_001', 'alumni_002', 'System Design Interview Mastery', 60, 'Preparing for Amazon interview. Need help with distributed systems.', 'pending', '2026-02-03 11:00:00', null),
+('mreq_003', 'offer_003', 'student_002', 'alumni_003', 'Open Source Contributions for Career Growth', 30, 'Want to start contributing to open-source.', 'rejected', '2026-02-01 09:30:00', '2026-02-02 14:00:00');
 
--- 5️⃣ MENTORSHIPS
--- =============================================
-INSERT INTO mentorships (mentor_id, student_id, status) VALUES
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', 'active'),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '22222222-2222-2222-2222-222222222222', 'active'),
-('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '55555555-5555-5555-5555-555555555555', 'active');
+-- MENTORSHIP SESSIONS
+INSERT INTO mentorship_sessions (id, request_id, offering_id, student_id, alumni_id, topic, duration, status, scheduled_at, alumni_completed, student_completed) VALUES
+('msess_001', 'mreq_001', 'offer_001', 'student_001', 'alumni_001', 'Breaking into Product Management', 30, 'scheduled', '2026-02-10 15:00:00', false, false);
 
--- 6️⃣ EVENTS
--- =============================================
-INSERT INTO events (id, title, description, location, date, created_by) VALUES
-('e1111111-e111-e111-e111-e11111111111', 'Tech Career Fair 2026', 'Meet top tech companies hiring for SDE roles', 'Bangalore', '2026-03-15 10:00:00', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
-('e2222222-e222-e222-e222-e22222222222', 'Product Management Workshop', 'Learn PM fundamentals from Google PM', 'Online', '2026-02-20 18:00:00', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
-('e3333333-e333-e333-e333-e33333333333', 'Alumni Networking Night', 'Connect with alumni from top tech companies', 'Mumbai', '2026-04-10 19:00:00', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
-('e4444444-e444-e444-e444-e44444444444', 'Startup Pitch Day', 'Present your startup ideas to potential co-founders', 'Hyderabad', '2026-05-05 14:00:00', 'dddddddd-dddd-dddd-dddd-dddddddddddd');
+-- DONATION CAMPAIGNS
+INSERT INTO donation_campaigns (id, title, description, category, goal_amount, raised_amount, image_url) VALUES
+('camp_001', 'Merit Scholarship Fund', 'Support bright students who need financial assistance to pursue higher education.', 'Scholarship', 500000, 325000, null),
+('camp_002', 'New Computer Lab', 'Help build a modern computer lab for the CS department.', 'Infrastructure', 1000000, 450000, null),
+('camp_003', 'Mental Health Initiative', 'Fund counseling services and wellness programs for students.', 'Wellness', 200000, 180000, null),
+('camp_004', 'Annual Tech Fest', 'Sponsor the biggest tech festival bringing together students and industry leaders.', 'Events', 300000, 120000, null),
+('camp_005', 'Online Course Subscriptions', 'Provide premium learning platform access for all students.', 'Education', 150000, 95000, null),
+('camp_006', 'Sports Complex Upgrade', 'Modernize sports facilities for student well-being.', 'Infrastructure', 800000, 200000, null);
 
--- 7️⃣ EVENT REGISTRATIONS
--- =============================================
-INSERT INTO event_registrations (event_id, user_id) VALUES
-('e1111111-e111-e111-e111-e11111111111', '11111111-1111-1111-1111-111111111111'),
-('e1111111-e111-e111-e111-e11111111111', '22222222-2222-2222-2222-222222222222'),
-('e2222222-e222-e222-e222-e22222222222', '11111111-1111-1111-1111-111111111111'),
-('e3333333-e333-e333-e333-e33333333333', '33333333-3333-3333-3333-333333333333'),
-('e4444444-e444-e444-e444-e44444444444', '44444444-4444-4444-4444-444444444444');
+-- GIGS
+INSERT INTO gigs (id, title, company, description, gig_type, stipend, duration, skills_required, posted_by) VALUES
+('gig_001', 'Frontend Intern', 'Google', 'Work on Google''s internal tools using React and TypeScript.', 'internship', '₹80,000/month', '6 months', ARRAY['React','TypeScript','CSS'], 'alumni_001'),
+('gig_002', 'Backend Micro Gig', 'Amazon', 'Build a REST API for internal dashboard. 2-week engagement.', 'micro_gig', '₹25,000', '2 weeks', ARRAY['Python','FastAPI','PostgreSQL'], 'alumni_002'),
+('gig_003', 'ML Research Intern', 'Microsoft', 'Research on NLP models for code completion.', 'internship', '₹70,000/month', '3 months', ARRAY['Python','PyTorch','NLP'], 'alumni_003'),
+('gig_004', 'Mobile App Gig', 'Flipkart', 'Build a React Native prototype for a new feature.', 'micro_gig', '₹30,000', '3 weeks', ARRAY['React Native','JavaScript'], 'alumni_004'),
+('gig_005', 'Data Analyst Intern', 'Google', 'Analyze user engagement data and build dashboards.', 'internship', '₹60,000/month', '4 months', ARRAY['SQL','Python','Tableau'], 'alumni_001'),
+('gig_006', 'DevOps Gig', 'Amazon', 'Set up CI/CD pipelines and container orchestration.', 'micro_gig', '₹35,000', '2 weeks', ARRAY['Docker','Kubernetes','AWS'], 'alumni_002');
 
--- 8️⃣ STARTUPS
--- =============================================
-INSERT INTO startups (name, description, founder_id, interested_alumni) VALUES
-('EduTech AI', 'AI-powered personalized learning platform for students', '44444444-4444-4444-4444-444444444444',
- '[
-   {"alumni_id":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"},
-   {"alumni_id":"dddddddd-dddd-dddd-dddd-dddddddddddd"}
- ]'::jsonb),
-('HealthBridge', 'Connecting rural patients with doctors via telemedicine', '33333333-3333-3333-3333-333333333333',
- '[
-   {"alumni_id":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"}
- ]'::jsonb);
+-- LINEAGE
+INSERT INTO lineage (student_id, alumni_id, connection_type, description) VALUES
+('student_001', 'alumni_001', 'mentorship', 'Both from IIT Delhi, Product track'),
+('student_001', 'alumni_002', 'guidance', 'System design mentoring'),
+('student_002', 'alumni_003', 'guidance', 'Open source collaboration');
 
--- 9️⃣ AI REMINDERS
--- =============================================
-INSERT INTO reminders (user_id, message, scheduled_at) VALUES
-('11111111-1111-1111-1111-111111111111', 'Follow up on your Google APM referral application', '2026-02-10 09:00:00'),
-('11111111-1111-1111-1111-111111111111', 'Product Management Workshop starts in 2 days!', '2026-02-18 10:00:00'),
-('22222222-2222-2222-2222-222222222222', 'Schedule a mock interview with your mentor', '2026-02-12 15:00:00'),
-('55555555-5555-5555-5555-555555555555', 'Update your portfolio before the design meetup', '2026-02-08 11:00:00');
+-- ALUMNI INVITATIONS (Student-to-Alumni)
+INSERT INTO alumni_invitations (id, event_id, student_id, alumni_id, role, message, status) VALUES
+('inv_001', 'evt_001', 'student_001', 'alumni_003', 'judge', 'Would love to have you as a judge for our tech careers panel!', 'pending'),
+('inv_002', 'evt_003', 'student_002', 'alumni_001', 'mentor', 'Your startup experience would be amazing for our founders meetup.', 'accepted'),
+('inv_003', 'evt_005', 'student_001', 'alumni_002', 'speaker', 'We would be honored to have you speak at our Women in Tech event.', 'declined');
+
+-- ONBOARDING ANSWERS
+INSERT INTO onboarding_answers (id, user_id, question_id, question_text, selected_option) VALUES
+('oa_001', 'alumni_001', 'alum_q1', 'What''s your primary motivation for joining AfterGrad?', 'Mentoring the next generation'),
+('oa_002', 'alumni_001', 'alum_q2', 'How much time can you dedicate per week?', '2-4 hours'),
+('oa_003', 'alumni_001', 'alum_q3', 'What type of guidance are you best at providing?', 'Career strategy & planning'),
+('oa_004', 'student_001', 'stu_q1', 'What''s your primary goal on AfterGrad?', 'Finding a mentor in my field'),
+('oa_005', 'student_001', 'stu_q2', 'Where are you in your academic journey?', 'Final year — placement season'),
+('oa_006', 'student_001', 'stu_q3', 'Which area are you most interested in?', 'Software Engineering');

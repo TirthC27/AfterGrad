@@ -1949,7 +1949,6 @@
 
 .mt-page {
   animation: fadeInUp 0.4s ease;
-  padding: 4px 0;
 }
 
 .mt-mode-toggle {
@@ -1957,11 +1956,11 @@
   align-items: center;
   gap: 4px;
   padding: 4px;
-  margin-bottom: 24px;
-  background: #eef2ff;
+  margin-bottom: 20px;
+  background: var(--glass-bg-strong);
   backdrop-filter: blur(8px);
   border-radius: 14px;
-  border: 1px solid #dbe4ff;
+  border: 1px solid var(--glass-border);
   width: fit-content;
 }
 
@@ -1969,7 +1968,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 22px;
+  padding: 10px 20px;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
@@ -1978,18 +1977,18 @@
   font-family: inherit;
   transition: all 0.25s ease;
   background: transparent;
-  color: #6b7db3;
+  color: var(--text-muted);
 }
 
 .mt-mode-btn:hover {
-  color: #4a5d99;
-  background: rgba(255, 255, 255, 0.6);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .mt-mode-btn.active {
-  background: #4f6ef7;
+  background: var(--mint-400);
   color: #fff;
-  box-shadow: 0 4px 16px rgba(79, 110, 247, 0.3);
+  box-shadow: 0 4px 16px rgba(74, 222, 128, 0.3);
 }
 
 .mt-panel-animate {
@@ -2000,34 +1999,30 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
-  padding: 0 2px;
+  margin-bottom: 16px;
 }
 
 .mt-virtual-subtitle {
-  font-size: 12px;
-  color: #7c8db5;
+  font-size: 11px;
+  color: var(--text-muted);
   margin: 0;
 }
 
 .mt-form-card {
-  margin-bottom: 20px;
-  border: 1px solid #dbe4ff;
-  background: #f5f8ff;
+  margin-bottom: 16px;
 }
 
 .mt-form-inner {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 4px;
 }
 
 .mt-form-input {
   font-size: 13px;
-  padding: 11px 16px;
+  padding: 10px 16px;
   border-radius: 12px;
-  border: 1px solid #dbe4ff;
+  border: 1px solid var(--glass-border);
   background: white;
   outline: none;
   font-family: inherit;
@@ -2036,8 +2031,7 @@
 }
 
 .mt-form-input:focus {
-  border-color: #4f6ef7;
-  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.08);
+  border-color: var(--mint-400);
 }
 
 .mt-form-row {
@@ -2048,9 +2042,9 @@
 .mt-form-select {
   flex: 1;
   font-size: 13px;
-  padding: 11px 16px;
+  padding: 10px 16px;
   border-radius: 12px;
-  border: 1px solid #dbe4ff;
+  border: 1px solid var(--glass-border);
   background: white;
   outline: none;
   font-family: inherit;
@@ -2060,43 +2054,30 @@
 .mt-form-actions {
   display: flex;
   gap: 8px;
-  padding-top: 4px;
 }
 
 .mt-ads-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   animation: fadeInUp 0.5s ease;
 }
 
 .mt-ad-card {
   display: flex !important;
   align-items: center !important;
-  gap: 18px !important;
-  padding: 18px 20px !important;
-  border: 1px solid #e4eaf5 !important;
-  border-left: 3px solid #4f6ef7 !important;
-  background: #fafbff !important;
-  transition: all 0.2s ease !important;
-}
-
-.mt-ad-card:hover {
-  border-color: #c7d4f7 !important;
-  background: #f0f4ff !important;
-  box-shadow: 0 4px 16px rgba(79, 110, 247, 0.08) !important;
+  gap: 16px !important;
 }
 
 .mt-ad-icon {
   width: 48px;
   height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #e8eeff, #dbe4ff);
+  border-radius: 16px;
+  background: rgba(134, 239, 172, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #4f6ef7;
 }
 
 .mt-ad-info {
@@ -2107,7 +2088,7 @@
 .mt-ad-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1e2a4a;
+  color: var(--text-primary);
   display: block;
   white-space: nowrap;
   overflow: hidden;
@@ -2117,10 +2098,10 @@
 .mt-ad-meta {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-top: 6px;
+  gap: 12px;
+  margin-top: 4px;
   font-size: 11px;
-  color: #8194b8;
+  color: var(--text-muted);
 }
 
 .mt-ad-meta span {
@@ -2134,7 +2115,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
+  gap: 6px;
 }
 
 .mt-ad-timer {
@@ -2149,22 +2130,56 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #4285f4, #3367d6);
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #1a73e8;
   color: #fff;
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.2);
 }
 
 .mt-meet-link:hover {
-  background: linear-gradient(135deg, #3367d6, #2854b5);
-  box-shadow: 0 4px 14px rgba(66, 133, 244, 0.35);
-  transform: translateY(-1px);
+  background: #1557b0;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+}
+
+.mt-pending-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.mt-ad-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.mt-ad-tag {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--mint-50);
+  color: var(--mint-600);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
 }
 
 /* ══════════════════════════════════════════

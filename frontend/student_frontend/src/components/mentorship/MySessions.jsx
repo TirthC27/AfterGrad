@@ -101,6 +101,17 @@ export default function MySessions() {
                   <div className="kcard-tags">
                     <span className="kcard-tag company">{sess.alumni?.company}</span>
                     <span className="kcard-tag dur">⏱ {sess.duration}m</span>
+                    {sess.meet_link && (
+                      <a
+                        href={sess.meet_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="kcard-tag meet-tag"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        🎥 Join Meet
+                      </a>
+                    )}
                   </div>
 
                   {/* Expanded detail */}
@@ -147,6 +158,16 @@ export default function MySessions() {
 
                       {/* Actions */}
                       <div className="kcard-actions">
+                        {sess.meet_link && (sess.status === 'scheduled' || sess.status === 'awaiting_completion') && (
+                          <a
+                            href={sess.meet_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="kcard-meet-btn"
+                          >
+                            🎥 Join Google Meet
+                          </a>
+                        )}
                         {sess.status === 'awaiting_completion' && !sess.student_completed && sess.alumni_completed && (
                           <button
                             className="kcard-confirm-btn"

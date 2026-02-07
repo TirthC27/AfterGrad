@@ -21,13 +21,22 @@
 #
 # =============================================
 
+from typing import Optional
+from datetime import datetime, timedelta
+import uuid
+import random
+import string
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
-import uuid
-from datetime import datetime, timedelta
 
 mentorship_router = APIRouter(prefix="/api/mentorship", tags=["mentorship"])
+
+
+def _generate_meet_link():
+    """Generate a working Jitsi Meet link (free, no auth required)."""
+    room_id = uuid.uuid4().hex[:12]
+    return f"https://meet.jit.si/AfterGrad-{room_id}"
 
 
 # =============================================================================
@@ -157,6 +166,7 @@ MOCK_SESSIONS = [
         "alumni_completed": False,
         "student_completed": False,
         "completed_at": None,
+        "meet_link": "https://meet.jit.si/AfterGrad-pm-session-001",
         "created_at": "2026-01-26T10:00:00",
     },
 ]
@@ -374,7 +384,8 @@ def accept_request(request_id: str, body: AcceptRejectBody):
     req["status"] = "accepted"
     req["responded_at"] = datetime.now().isoformat()
 
-    # Create session
+    # Create session with shared meet link
+    meet_link = _generate_meet_link()
     session = {
         "id": f"msess_{uuid.uuid4().hex[:6]}",
         "request_id": request_id,
@@ -388,6 +399,7 @@ def accept_request(request_id: str, body: AcceptRejectBody):
         "alumni_completed": False,
         "student_completed": False,
         "completed_at": None,
+        "meet_link": meet_link,
         "created_at": datetime.now().isoformat(),
     }
     MOCK_SESSIONS.append(session)

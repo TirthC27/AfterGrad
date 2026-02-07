@@ -1,95 +1,139 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useJsApiLoader } from '@react-google-maps/api'
+import React, { useState, useEffect } from 'react'
 import Card from '../components/Card'
 import Button from '../components/Button'
 import Badge from '../components/Badge'
-import { Clock, DollarSign, Shield, User, Plus, Video, MapPin } from 'lucide-react'
+import { Clock, DollarSign, User, Plus, Video, MapPin, ExternalLink, RefreshCw, Loader } from 'lucide-react'
 import PhysicalMentorship from './PhysicalMentorship'
 
-const mockAds = [
-  { id: 1, title: '15-min Career Advice', duration: '15 min', price: 'Free', status: 'open', requests: 3 },
-  { id: 2, title: '30-min Resume Review', duration: '30 min', price: '₹500', status: 'accepted', requests: 1 },
-  { id: 3, title: '1-hr Mock Interview', duration: '60 min', price: '₹1,500', status: 'open', requests: 7 },
-]
-
-function CountdownTimer({ targetMinutes }) {
-  const [secs, setSecs] = useState(targetMinutes * 60)
-  useEffect(() => {
-    const interval = setInterval(() => setSecs(s => (s > 0 ? s - 1 : 0)), 1000)
-    return () => clearInterval(interval)
-  }, [])
-  const m = Math.floor(secs / 60)
-  const s = secs % 60
-  return (
-    <span className="font-mono text-lg font-bold text-[var(--mint-500)]">
-      {String(m).padStart(2, '0')}:{String(s).padStart(2, '0')}
-    </span>
-  )
-}
+const API_BASE = 'http://localhost:8001'
+const ALUMNI_ID = 'alumni_001' // Current logged-in alumni
 
 export default function Mentorship({ addToast }) {
-  const [mode, setMode] = useState('virtual') // 'virtual' | 'physical'
-  const [ads, setAds] = useState(mockAds)
+  const [mode, setMode] = useState('virtual')
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ title: '', duration: '15 min', price: 'Free' })
+  const [form, setForm] = useState({ title: '', duration: 30, price: 0, tags: '' })
 
-  // Load Google Maps once at parent level so it survives mode toggling
-  const { isLoaded, loadError } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-  })
+  // Backend data
+  const [offerings, setOfferings] = useState([])
+  const [requests, setRequests] = useState([])
+  const [sessions, setSessions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [acceptingId, setAcceptingId] = useState(null)
 
-  const createAd = () => {
+  // Fetch all alumni data
+  const fetchData = async () => {
+    try {
+      const [offRes, reqRes, sessRes] = await Promise.all([
+        fetch(`${API_BASE}/api/mentorship/offerings/mine?alumni_id=${ALUMNI_ID}`),
+        fetch(`${API_BASE}/api/mentorship/requests/alumni?alumni_id=${ALUMNI_ID}`),
+        fetch(`${API_BASE}/api/mentorship/sessions/alumni?alumni_id=${ALUMNI_ID}`),
+      ])
+      const [offData, reqData, sessData] = await Promise.all([offRes.json(), reqRes.json(), sessRes.json()])
+      setOfferings(offData)
+      setRequests(reqData)
+      setSessions(sessData)
+    } catch (e) {
+      console.error('Failed to fetch mentorship data:', e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchData() }, [])
+
+  // Count pending requests per offering
+  const pendingCountFor = (offeringId) =>
+    requests.filter(r => r.offering_id === offeringId && r.status === 'pending').length
+
+  // Get session meet link for an offering (if accepted)
+  const getMeetLink = (offeringId) => {
+    const sess = sessions.find(s => s.offering_id === offeringId && s.meet_link)
+    return sess?.meet_link || null
+  }
+
+  // Has any accepted request for this offering?
+  const hasAccepted = (offeringId) =>
+    requests.some(r => r.offering_id === offeringId && r.status === 'accepted')
+
+  // Get the first pending request for an offering
+  const getFirstPendingRequest = (offeringId) =>
+    requests.find(r => r.offering_id === offeringId && r.status === 'pending')
+
+  // Create offering via API
+  const createAd = async () => {
     if (!form.title.trim()) return
-    setAds(prev => [...prev, {
-      id: Date.now(),
-      title: form.title,
-      duration: form.duration,
-      price: form.price,
-      status: 'open',
-      requests: 0,
-    }])
-    setForm({ title: '', duration: '15 min', price: 'Free' })
-    setShowForm(false)
-    addToast?.('Mentorship ad created!')
+    try {
+      const res = await fetch(`${API_BASE}/api/mentorship/offerings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          alumni_id: ALUMNI_ID,
+          topic: form.title,
+          description: form.title,
+          duration: form.duration,
+          price: form.price,
+          tags: form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        }),
+      })
+      if (res.ok) {
+        setForm({ title: '', duration: 30, price: 0, tags: '' })
+        setShowForm(false)
+        addToast?.('Mentorship offering created!')
+        fetchData()
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        console.error('Create failed:', res.status, errData)
+        addToast?.(errData.detail || 'Failed to create offering', 'error')
+      }
+    } catch (e) {
+      console.error(e)
+      addToast?.('Failed to create offering')
+    }
   }
 
-  const acceptRequest = (id) => {
-    setAds(prev => prev.map(a => a.id === id ? { ...a, status: 'accepted' } : a))
-    addToast?.('Request accepted! Escrow activated.')
+  // Accept a pending request → backend creates session with meet link
+  const acceptRequest = async (offeringId) => {
+    const req = getFirstPendingRequest(offeringId)
+    if (!req) return
+    setAcceptingId(offeringId)
+    try {
+      const res = await fetch(`${API_BASE}/api/mentorship/requests/${req.id}/accept`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: ALUMNI_ID }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const meetLink = data.session?.meet_link
+        addToast?.(`Request accepted! Meet link: ${meetLink ? 'generated' : 'pending'}`)
+        fetchData()
+      }
+    } catch (e) {
+      console.error(e)
+      addToast?.('Failed to accept request')
+    } finally {
+      setAcceptingId(null)
+    }
   }
+
+  const durationLabel = (min) => min === 60 ? '1 hour' : `${min} min`
 
   return (
-    <>
+    <div className="mt-page">
       <section className="section-label">Mentorship</section>
 
       {/* ─── Mode Toggle ─── */}
-      <div className="flex items-center gap-1 p-1 mb-5 bg-white/50 backdrop-blur-sm rounded-2xl border border-[var(--glass-border)] w-fit">
+      <div className="mt-mode-toggle">
         <button
           onClick={() => setMode('virtual')}
-          className={`
-            flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
-            border-none cursor-pointer font-[inherit] transition-all duration-300
-            ${mode === 'virtual'
-              ? 'bg-[var(--mint-400)] text-white shadow-[0_4px_16px_rgba(74,222,128,0.3)]'
-              : 'bg-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/40'
-            }
-          `}
+          className={`mt-mode-btn ${mode === 'virtual' ? 'active' : ''}`}
         >
           <Video size={16} />
           Virtual
         </button>
         <button
           onClick={() => setMode('physical')}
-          className={`
-            flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
-            border-none cursor-pointer font-[inherit] transition-all duration-300
-            ${mode === 'physical'
-              ? 'bg-[var(--mint-400)] text-white shadow-[0_4px_16px_rgba(74,222,128,0.3)]'
-              : 'bg-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/40'
-            }
-          `}
+          className={`mt-mode-btn ${mode === 'physical' ? 'active' : ''}`}
         >
           <MapPin size={16} />
           Nearby (Physical)
@@ -97,118 +141,155 @@ export default function Mentorship({ addToast }) {
       </div>
 
       {/* ─── Physical Mode ─── */}
-      <AnimatePresence mode="wait">
-        {mode === 'physical' && (
-          <motion.div
-            key="physical"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.25 }}
-          >
-            <PhysicalMentorship addToast={addToast} isLoaded={isLoaded} loadError={loadError} />
-          </motion.div>
-        )}
-
-        {/* ─── Virtual Mode ─── */}
-        {mode === 'virtual' && (
-          <motion.div
-            key="virtual"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.25 }}
-          >
-      <section className="section-label">Offer Virtual Mentorship</section>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-[11px] text-[var(--text-muted)]">Create mentorship sessions for students to book.</p>
-        <Button variant="primary" size="sm" onClick={() => setShowForm(!showForm)}>
-          <Plus size={14} /> New Ad
-        </Button>
-      </div>
-
-      {showForm && (
-        <Card hover={false} className="mb-4 animate-[scaleIn_0.2s_ease]">
-          <div className="flex flex-col gap-3">
-            <input
-              value={form.title}
-              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              placeholder="Session title (e.g. 15-min Career Advice)"
-              className="text-sm px-4 py-2.5 rounded-xl border border-[var(--glass-border)] bg-white/50 outline-none font-[inherit] text-[var(--text-primary)]"
-            />
-            <div className="flex gap-3">
-              <select
-                value={form.duration}
-                onChange={e => setForm(f => ({ ...f, duration: e.target.value }))}
-                className="text-sm px-4 py-2 rounded-xl border border-[var(--glass-border)] bg-white/50 outline-none font-[inherit] text-[var(--text-primary)] flex-1"
-              >
-                <option>15 min</option>
-                <option>30 min</option>
-                <option>60 min</option>
-              </select>
-              <input
-                value={form.price}
-                onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
-                placeholder="Price or Free"
-                className="text-sm px-4 py-2 rounded-xl border border-[var(--glass-border)] bg-white/50 outline-none font-[inherit] text-[var(--text-primary)] flex-1"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button variant="primary" size="sm" onClick={createAd}>Create</Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
-            </div>
-          </div>
-        </Card>
+      {mode === 'physical' && (
+        <div className="mt-panel-animate">
+          <PhysicalMentorship addToast={addToast} />
+        </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 animate-[fadeInUp_0.5s_ease]">
-        {ads.map((ad, i) => (
-          <Card key={ad.id} className="flex items-center gap-4" style={{ animationDelay: `${i * 60}ms` }}>
-            {/* Icon */}
-            <div className="w-12 h-12 rounded-2xl bg-[rgba(134,239,172,0.12)] flex items-center justify-center shrink-0">
-              <User size={24} className="text-[var(--mint-500)]" />
+      {/* ─── Virtual Mode ─── */}
+      {mode === 'virtual' && (
+        <div className="mt-panel-animate">
+          <section className="section-label">Offer Virtual Mentorship</section>
+          <div className="mt-virtual-header">
+            <p className="mt-virtual-subtitle">Create mentorship sessions for students to book.</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="ghost" size="sm" onClick={fetchData} title="Refresh">
+                <RefreshCw size={14} />
+              </Button>
+              <Button variant="primary" size="sm" onClick={() => setShowForm(!showForm)}>
+                <Plus size={14} /> New Ad
+              </Button>
             </div>
+          </div>
 
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <span className="text-[14px] font-semibold text-[var(--text-primary)] block truncate">{ad.title}</span>
-              <div className="flex items-center gap-3 mt-1 text-[11px] text-[var(--text-muted)]">
-                <span className="flex items-center gap-1"><Clock size={12} /> {ad.duration}</span>
-                <span className="flex items-center gap-1"><DollarSign size={12} /> {ad.price}</span>
-                <span className="flex items-center gap-1"><User size={12} /> {ad.requests} requests</span>
+          {showForm && (
+            <Card hover={false} className="mt-form-card">
+              <div className="mt-form-inner">
+                <input
+                  value={form.title}
+                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="Session title (e.g. Resume Review for SDE roles)"
+                  className="mt-form-input"
+                />
+                <div className="mt-form-row">
+                  <select
+                    value={form.duration}
+                    onChange={e => setForm(f => ({ ...f, duration: +e.target.value }))}
+                    className="mt-form-select"
+                  >
+                    <option value={15}>15 min</option>
+                    <option value={30}>30 min</option>
+                    <option value={60}>60 min</option>
+                  </select>
+                  <input
+                    value={form.price}
+                    onChange={e => setForm(f => ({ ...f, price: +e.target.value || 0 }))}
+                    placeholder="Price (0 = Free)"
+                    className="mt-form-input"
+                    type="number"
+                    min="0"
+                  />
+                </div>
+                <input
+                  value={form.tags}
+                  onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
+                  placeholder="Tags (comma separated, e.g. Engineering, Career)"
+                  className="mt-form-input"
+                />
+                <div className="mt-form-actions">
+                  <Button variant="primary" size="sm" onClick={createAd}>Create</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+                </div>
               </div>
-            </div>
+            </Card>
+          )}
 
-            {/* Status / Action */}
-            <div className="shrink-0 flex flex-col items-end gap-1.5">
-              {ad.status === 'open' && (
-                <>
-                  <Badge variant="default">Open</Badge>
-                  {ad.requests > 0 && (
-                    <Button variant="primary" size="sm" onClick={(e) => { e.stopPropagation(); acceptRequest(ad.id) }}>
-                      Accept
-                    </Button>
-                  )}
-                </>
-              )}
-              {ad.status === 'accepted' && (
-                <>
-                  <Badge variant="success" glow>
-                    <Shield size={10} /> Escrow Active
-                  </Badge>
-                  <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
-                    <span>Session in</span>
-                    <CountdownTimer targetMinutes={45} />
-                  </div>
-                </>
-              )}
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 40, color: 'var(--text-muted)' }}>
+              <Loader size={20} className="spin" /> <span style={{ marginLeft: 8 }}>Loading your offerings...</span>
             </div>
-          </Card>
-        ))}
-      </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+          ) : offerings.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
+              <User size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
+              <p>You haven't created any offerings yet.</p>
+              <p style={{ fontSize: 13 }}>Click "New Ad" to create your first mentorship session.</p>
+            </div>
+          ) : (
+            <div className="mt-ads-list">
+              {offerings.map((offer, i) => {
+                const pending = pendingCountFor(offer.id)
+                const accepted = hasAccepted(offer.id)
+                const meetLink = getMeetLink(offer.id)
+                const totalRequests = requests.filter(r => r.offering_id === offer.id).length
+
+                return (
+                  <Card key={offer.id} className="mt-ad-card" style={{ animationDelay: `${i * 60}ms` }}>
+                    {/* Icon */}
+                    <div className="mt-ad-icon">
+                      <User size={24} className="text-[var(--mint-500)]" />
+                    </div>
+
+                    {/* Info */}
+                    <div className="mt-ad-info">
+                      <span className="mt-ad-title">{offer.topic}</span>
+                      <div className="mt-ad-meta">
+                        <span><Clock size={12} /> {durationLabel(offer.duration)}</span>
+                        <span><DollarSign size={12} /> {offer.price === 0 ? 'Free' : `₹${offer.price}`}</span>
+                        <span><User size={12} /> {totalRequests} request{totalRequests !== 1 ? 's' : ''}</span>
+                        {pending > 0 && (
+                          <span className="mt-pending-badge">{pending} pending</span>
+                        )}
+                      </div>
+                      {offer.tags?.length > 0 && (
+                        <div className="mt-ad-tags">
+                          {offer.tags.map(t => <span key={t} className="mt-ad-tag">{t}</span>)}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Status / Action */}
+                    <div className="mt-ad-actions">
+                      {accepted && meetLink ? (
+                        <>
+                          <Badge variant="success" glow>Accepted</Badge>
+                          <a
+                            href={meetLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-meet-link"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <Video size={14} />
+                            Join Meet
+                            <ExternalLink size={11} />
+                          </a>
+                        </>
+                      ) : pending > 0 ? (
+                        <>
+                          <Badge variant="default">{pending} Pending</Badge>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); acceptRequest(offer.id) }}
+                            disabled={acceptingId === offer.id}
+                          >
+                            {acceptingId === offer.id ? 'Accepting...' : 'Accept'}
+                          </Button>
+                        </>
+                      ) : (
+                        <Badge variant="default">
+                          {offer.active ? 'Open' : 'Inactive'}
+                        </Badge>
+                      )}
+                    </div>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }

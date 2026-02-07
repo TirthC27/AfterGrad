@@ -2,29 +2,16 @@ import React, { useState, useEffect } from 'react'
 import Card from '../components/Card'
 import Button from '../components/Button'
 import Badge from '../components/Badge'
-import { Clock, DollarSign, Shield, User, Plus, Video, MapPin } from 'lucide-react'
+import { Clock, DollarSign, User, Plus, Video, MapPin, ExternalLink } from 'lucide-react'
 import PhysicalMentorship from './PhysicalMentorship'
+
+const MEET_NEW_URL = 'https://meet.google.com/new'
 
 const mockAds = [
   { id: 1, title: '15-min Career Advice', duration: '15 min', price: 'Free', status: 'open', requests: 3 },
   { id: 2, title: '30-min Resume Review', duration: '30 min', price: '₹500', status: 'accepted', requests: 1 },
   { id: 3, title: '1-hr Mock Interview', duration: '60 min', price: '₹1,500', status: 'open', requests: 7 },
 ]
-
-function CountdownTimer({ targetMinutes }) {
-  const [secs, setSecs] = useState(targetMinutes * 60)
-  useEffect(() => {
-    const interval = setInterval(() => setSecs(s => (s > 0 ? s - 1 : 0)), 1000)
-    return () => clearInterval(interval)
-  }, [])
-  const m = Math.floor(secs / 60)
-  const s = secs % 60
-  return (
-    <span className="font-mono text-lg font-bold text-[var(--mint-500)]">
-      {String(m).padStart(2, '0')}:{String(s).padStart(2, '0')}
-    </span>
-  )
-}
 
 export default function Mentorship({ addToast }) {
   const [mode, setMode] = useState('virtual')
@@ -49,7 +36,7 @@ export default function Mentorship({ addToast }) {
 
   const acceptRequest = (id) => {
     setAds(prev => prev.map(a => a.id === id ? { ...a, status: 'accepted' } : a))
-    addToast?.('Request accepted! Escrow activated.')
+    addToast?.('Request accepted! Click Join Meet to start a session.')
   }
 
   return (
@@ -158,13 +145,18 @@ export default function Mentorship({ addToast }) {
                   )}
                   {ad.status === 'accepted' && (
                     <>
-                      <Badge variant="success" glow>
-                        <Shield size={10} /> Escrow Active
-                      </Badge>
-                      <div className="mt-ad-timer">
-                        <span>Session in</span>
-                        <CountdownTimer targetMinutes={45} />
-                      </div>
+                      <Badge variant="success" glow>Accepted</Badge>
+                      <a
+                        href={MEET_NEW_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-meet-link"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <Video size={14} />
+                        Join Meet
+                        <ExternalLink size={11} />
+                      </a>
                     </>
                   )}
                 </div>

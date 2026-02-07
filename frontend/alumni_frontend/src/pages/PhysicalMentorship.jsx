@@ -181,8 +181,7 @@ function CampusMap({ locations, nearbyAlumni, selectedLocation, onLocationClick,
               <div className="pm-popup-content pm-popup-alumni">
                 <div className="pm-popup-avatar">{a.avatar}</div>
                 <div>
-                  <strong>{a.name}</strong>
-                  <span className="pm-popup-role">{a.role}</span>
+                  <strong>{a.specialization}</strong>
                   <span className="pm-popup-distance"><Navigation size={10} /> {a.distance}</span>
                 </div>
               </div>
@@ -238,7 +237,7 @@ export default function PhysicalMentorship({ addToast }) {
   const [studentSlots, setStudentSlots] = useState(3)
   const [groupEnabled, setGroupEnabled] = useState(false)
   const [isLive, setIsLive] = useState(false)
-  const [proximityRange, setProximityRange] = useState(500) // meters
+  const proximityRange = 500 // meters (default)
 
   /* UI state */
   const [activePanel, setActivePanel] = useState('setup') // setup | requests | nearby | group
@@ -315,7 +314,6 @@ export default function PhysicalMentorship({ addToast }) {
               { key: 'setup', label: 'My Setup', icon: Settings },
               { key: 'requests', label: 'Requests', icon: Users, count: requests.filter(r => r.status === 'pending').length },
               { key: 'nearby', label: 'Alumni Nearby', icon: Eye },
-              { key: 'group', label: 'Group Hub', icon: MessageCircle },
             ].map(tab => {
               const Icon = tab.icon
               return (
@@ -423,36 +421,43 @@ export default function PhysicalMentorship({ addToast }) {
                 </div>
               </div>
 
-              {/* Student Slots */}
+              {/* Session Type */}
               <div className="pm-field">
-                <label className="pm-label"><Users size={13} /> Student Slots Available</label>
-                <div className="pm-slots-row">
-                  <button className="pm-slot-btn" onClick={() => setStudentSlots(s => Math.max(1, s - 1))}>
-                    <Minus size={14} />
+                <label className="pm-label"><Users size={13} /> Session Type</label>
+                <div className="pm-session-type-toggle">
+                  <button
+                    className={`pm-session-type-btn ${!groupEnabled ? 'active' : ''}`}
+                    onClick={() => setGroupEnabled(false)}
+                  >
+                    <User size={14} />
+                    <span>Individual Slots</span>
                   </button>
-                  <span className="pm-slot-num">{studentSlots}</span>
-                  <button className="pm-slot-btn" onClick={() => setStudentSlots(s => Math.min(10, s + 1))}>
-                    <Plus size={14} />
+                  <button
+                    className={`pm-session-type-btn ${groupEnabled ? 'active' : ''}`}
+                    onClick={() => setGroupEnabled(true)}
+                  >
+                    <Users size={14} />
+                    <span>Group Session</span>
                   </button>
-                  <span className="pm-slot-label">students max</span>
                 </div>
               </div>
 
-              {/* Group Toggle */}
-              <div className="pm-field">
-                <div className="pm-toggle-row">
-                  <div>
-                    <span className="pm-toggle-text" style={{ fontWeight: 700 }}>Allow Group Sessions</span>
-                    <span className="pm-toggle-hint">Multiple students can join simultaneously</span>
+              {/* Student Slots (only for individual sessions) */}
+              {!groupEnabled && (
+                <div className="pm-field">
+                  <label className="pm-label"><Users size={13} /> Student Slots Available</label>
+                  <div className="pm-slots-row">
+                    <button className="pm-slot-btn" onClick={() => setStudentSlots(s => Math.max(1, s - 1))}>
+                      <Minus size={14} />
+                    </button>
+                    <span className="pm-slot-num">{studentSlots}</span>
+                    <button className="pm-slot-btn" onClick={() => setStudentSlots(s => Math.min(10, s + 1))}>
+                      <Plus size={14} />
+                    </button>
+                    <span className="pm-slot-label">students max</span>
                   </div>
-                  <button className="pm-toggle-btn" onClick={() => setGroupEnabled(!groupEnabled)}>
-                    {groupEnabled
-                      ? <ToggleRight size={32} className="pm-toggle-on" />
-                      : <ToggleLeft size={32} className="pm-toggle-off" />
-                    }
-                  </button>
                 </div>
-              </div>
+              )}
 
               {/* Go Live / Stop */}
               <button
@@ -505,21 +510,7 @@ export default function PhysicalMentorship({ addToast }) {
           {activePanel === 'nearby' && (
             <div className="pm-panel-body">
               <h3 className="pm-panel-title"><Eye size={16} /> Alumni Nearby</h3>
-              <p className="pm-panel-subtitle">Other alumni within {proximityRange}m — view only</p>
-
-              {/* Proximity slider */}
-              <div className="pm-prox-slider">
-                <label className="pm-label"><Locate size={13} /> Proximity Range</label>
-                <div className="pm-prox-row">
-                  <input
-                    type="range" min={100} max={1000} step={50}
-                    value={proximityRange}
-                    onChange={e => setProximityRange(+e.target.value)}
-                    className="pm-range-input"
-                  />
-                  <span className="pm-prox-val">{proximityRange}m</span>
-                </div>
-              </div>
+              <p className="pm-panel-subtitle">Other alumni within 500m — view only</p>
 
               <div className="pm-nearby-list">
                 {mockNearbyAlumni.map(alumni => (
@@ -533,10 +524,9 @@ export default function PhysicalMentorship({ addToast }) {
                     </div>
                     <div className="pm-nearby-info">
                       <div className="pm-nearby-name-row">
-                        <span className="pm-nearby-name">{alumni.name}</span>
+                        <span className="pm-nearby-name">Anonymous Alumni</span>
                         <div className="pm-nearby-rating"><Star size={11} />{alumni.rating}</div>
                       </div>
-                      <span className="pm-nearby-role">{alumni.role}</span>
                       <span className="pm-nearby-spec">{alumni.specialization}</span>
                       <div className="pm-nearby-tags">
                         {alumni.tags.map(t => <span key={t} className="pm-nearby-tag">{t}</span>)}
@@ -557,92 +547,7 @@ export default function PhysicalMentorship({ addToast }) {
             </div>
           )}
 
-          {/* ─── GROUP HUB Panel ─── */}
-          {activePanel === 'group' && (
-            <div className="pm-panel-body">
-              <h3 className="pm-panel-title"><MessageCircle size={16} /> Group Hub</h3>
-              <p className="pm-panel-subtitle">Collaborative sessions & community</p>
 
-              {/* Active Group Sessions */}
-              <div className="pm-group-section">
-                <h4 className="pm-group-heading"><Radio size={13} /> Active Group Sessions</h4>
-                <div className="pm-group-cards">
-                  <div className="pm-group-card">
-                    <div className="pm-group-card-header">
-                      <span className="pm-group-topic">System Design Workshop</span>
-                      <span className="pm-group-live-badge"><div className="pm-mini-dot" /> LIVE</span>
-                    </div>
-                    <span className="pm-group-host">Hosted by Rohan Desai · SAC Building</span>
-                    <div className="pm-group-meta">
-                      <span><Users size={12} /> 4/6 joined</span>
-                      <span><Clock size={12} /> 25 min left</span>
-                    </div>
-                    <button className="pm-group-join" onClick={() => showToast('Joined System Design Workshop!')}>
-                      Join Session
-                    </button>
-                  </div>
-                  <div className="pm-group-card">
-                    <div className="pm-group-card-header">
-                      <span className="pm-group-topic">ML Paper Reading Club</span>
-                      <span className="pm-group-live-badge"><div className="pm-mini-dot" /> LIVE</span>
-                    </div>
-                    <span className="pm-group-host">Hosted by Kavya Nair · Central Library</span>
-                    <div className="pm-group-meta">
-                      <span><Users size={12} /> 2/5 joined</span>
-                      <span><Clock size={12} /> 40 min left</span>
-                    </div>
-                    <button className="pm-group-join" onClick={() => showToast('Joined ML Paper Reading Club!')}>
-                      Join Session
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Create Group Session */}
-              <div className="pm-group-section">
-                <h4 className="pm-group-heading"><Plus size={13} /> Start a Group Session</h4>
-                <div className="pm-group-create">
-                  <input className="pm-group-input" placeholder="Session topic (e.g. Mock Interview Circle)" />
-                  <div className="pm-group-create-row">
-                    <select className="pm-group-select">
-                      <option value="">Select location</option>
-                      {CAMPUS_LOCATIONS.map(l => <option key={l.id} value={l.id}>{l.icon} {l.name}</option>)}
-                    </select>
-                    <select className="pm-group-select">
-                      <option value="">Max participants</option>
-                      {[3, 4, 5, 6, 8, 10].map(n => <option key={n} value={n}>{n} students</option>)}
-                    </select>
-                  </div>
-                  <button className="pm-group-create-btn" onClick={() => showToast('Group session created!')}>
-                    <Zap size={14} /> Create & Go Live
-                  </button>
-                </div>
-              </div>
-
-              {/* Upcoming Scheduled */}
-              <div className="pm-group-section">
-                <h4 className="pm-group-heading"><Clock size={13} /> Scheduled Sessions</h4>
-                <div className="pm-group-scheduled">
-                  <div className="pm-sched-item">
-                    <div className="pm-sched-time">Today, 3 PM</div>
-                    <div className="pm-sched-info">
-                      <span className="pm-sched-topic">Resume Roast Round</span>
-                      <span className="pm-sched-detail">Tech Park · 5 slots · by You</span>
-                    </div>
-                    <span className="pm-sched-badge upcoming">Upcoming</span>
-                  </div>
-                  <div className="pm-sched-item">
-                    <div className="pm-sched-time">Tomorrow, 11 AM</div>
-                    <div className="pm-sched-info">
-                      <span className="pm-sched-topic">Career Q&A Open House</span>
-                      <span className="pm-sched-detail">Main Canteen · 8 slots · by Rohan D.</span>
-                    </div>
-                    <span className="pm-sched-badge upcoming">Upcoming</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
